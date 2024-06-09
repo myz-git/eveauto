@@ -62,8 +62,8 @@ if __name__ == "__main__":
     print("测试集上的准确率:", accuracy_score(y_test, y_pred))
 
     # 保存模型和标准化器
-    model_save_path = f'trained_model_{icon_name}.joblib'
-    scaler_save_path = f'scaler_{icon_name}.joblib'
+    model_save_path = f'model/trained_model_{icon_name}.joblib'
+    scaler_save_path = f'model/scaler_{icon_name}.joblib'
     dump(clf, model_save_path)
     dump(scaler, scaler_save_path)
     print(f"Model and scaler saved: {model_save_path}, {scaler_save_path}")

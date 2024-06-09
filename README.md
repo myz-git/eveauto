@@ -20,7 +20,8 @@ pip install opencv-python numpy
 pip install scikit-learn
 pip install scikit-image
 
-
+pip install cnocr
+pip install onnxruntime
 
 
 https://github.com/UB-Mannheim/tesseract/wiki
@@ -197,3 +198,63 @@ x1, y1, width1, height1 = 0, 0, 400, 500 # 设置为需要捕获的屏幕区域
 
 
 
+
+
+
+
+### 接任务
+
+#### 1. 找代理人谈话
+
+##### 1).准备模型
+
+**a.识别图标agent1** 
+
+​	截图icon/agent1-0.png  ,icon/agent1-1.png  代表两种状态,
+
+​	注:  背景要清晰纯色 ,能够突显图标, 两个截图大小要一样;
+
+**b. 准备0状态(agent1-0)训练图片**
+
+```
+python snap.py agent1-0.png
+```
+
+​	在游戏中展现agent1-0的界面, 缓慢移动背景,展现不同背景下agent1-0,一两分钟后,停止snap.py, 检查studydata/agent1-0/下抓取的图片是否有不符合的; 
+
+**c. 准备1状态(agent1-1)训练图片**
+
+​	同上;
+
+**d.训练agent1**
+
+```
+python study2sta.py agent1
+--1个状态用study1sta,2个状态用study2sta
+测试集上的准确率: 1.0
+Model and scaler saved: trained_model_agent1.joblib, scaler_agent1.joblib
+```
+
+得到模型: **trained_model_agent1.joblib, scaler_agent1.joblib**
+
+##### 2). 主程序
+
+
+
+## FYI
+
+### OCR
+
+http://masikkk.com/article/Tesseract/
+
+cnocr:  https://github.com/breezedeus/cnocr
+
+使用方法:*https://cnocr.readthedocs.io/zh/latest/usage*
+
+
+
+#### TASK
+
+https://wiki.eveuniversity.org/Missions
+
+*/open journal*

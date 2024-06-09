@@ -25,12 +25,12 @@ def predict_icon_status(image, clf, scaler):
 
 def main():
     # Load models and scalers
-    clf_talk1 = load('trained_model_talk1.joblib')
-    scaler_talk1 = load('scaler_talk1.joblib')
-    clf_talk2 = load('trained_model_talk2.joblib')
-    scaler_talk2 = load('scaler_talk2.joblib')
-    clf_out1 = load('trained_model_out1.joblib')
-    scaler_out1 = load('scaler_out1.joblib')
+    clf_talk1 = load('model/trained_model_talk1.joblib')
+    scaler_talk1 = load('model/scaler_talk1.joblib')
+    clf_talk2 = load('model/trained_model_talk2.joblib')
+    scaler_talk2 = load('model/scaler_talk2.joblib')
+    clf_out1 = load('model/trained_model_out1.joblib')
+    scaler_out1 = load('model/scaler_out1.joblib')
 
     # Define paths to icon templates
     icon_path_talk1 = os.path.join('icon', 'talk1-1.png')

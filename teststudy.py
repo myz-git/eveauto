@@ -28,8 +28,8 @@ if __name__ == "__main__":
     icon_name = sys.argv[1]  # 从命令行参数获取图标名称
 
     # 构建模型和标准化器的文件名
-    model_filename = f'trained_model_{icon_name}.joblib'
-    scaler_filename = f'scaler_{icon_name}.joblib'
+    model_filename = f'model/trained_model_{icon_name}.joblib'
+    scaler_filename = f'model/scaler_{icon_name}.joblib'
 
     # 加载模型和标准化器
     clf = load(model_filename)

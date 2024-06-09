@@ -27,14 +27,14 @@ def predict_icon_status(image, clf, scaler):
 
 def main():
     # 加载模型和标准化器
-    clf_jump0 = load('trained_model_jump0.joblib')
-    scaler_jump0 = load('scaler_jump0.joblib')
-    clf_jump1 = load('trained_model_jump1.joblib')
-    scaler_jump1 = load('scaler_jump1.joblib')
-    clf_jump2 = load('trained_model_jump2.joblib')
-    scaler_jump2 = load('scaler_jump2.joblib')
-    clf_jump3 = load('trained_model_jump3.joblib')
-    scaler_jump3 = load('scaler_jump3.joblib')
+    clf_jump0 = load('model/trained_model_jump0.joblib')
+    scaler_jump0 = load('model/scaler_jump0.joblib')
+    clf_jump1 = load('model/trained_model_jump1.joblib')
+    scaler_jump1 = load('model/scaler_jump1.joblib')
+    clf_jump2 = load('model/trained_model_jump2.joblib')
+    scaler_jump2 = load('model/scaler_jump2.joblib')
+    clf_jump3 = load('model/trained_model_jump3.joblib')
+    scaler_jump3 = load('model/scaler_jump3.joblib')
 
     # 构建图标路径
     icon_path_jump0 = os.path.join('icon', 'jump0-1.png')
@@ -69,10 +69,11 @@ def main():
 
     while attempts < max_attempts and not icon_found_and_clicked:
         #转动屏幕
-        pyautogui.moveTo(fx/2-100,fy/2,0.2)
+        pyautogui.moveTo(fx/2-300,fy/2-300,0.2)
         #pyautogui.click()
-        pyautogui.dragRel(-50,0,0.2,pyautogui.easeOutQuad)
+        pyautogui.dragRel(-50,-50,0.4,pyautogui.easeOutQuad)
         print(f"鼠标当前位置{pyautogui.position()}")
+        pyautogui.hotkey('ctrl', 'w')
         print("拖动鼠标...")      
         
         pane0_image = capture_screen_area(x0, y0, width0, height0)

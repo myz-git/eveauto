@@ -47,8 +47,8 @@ def find_and_click_icon(template, width, height, clf, scaler, max_attempts=3,off
 
 def outsite_icons_main():
     # Load models and scalers
-    clf_out1 = load('trained_model_out1.joblib')
-    scaler_out1 = load('scaler_out1.joblib')
+    clf_out1 = load('model/trained_model_out1.joblib')
+    scaler_out1 = load('model/scaler_out1.joblib')
 
     # Define paths to icon templates
     icon_path_out1 = os.path.join('icon', 'out1-1.png')

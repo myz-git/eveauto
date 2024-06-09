@@ -20,6 +20,8 @@ def main():
     
     time.sleep(5)
     run_script('jump.py')
+    time.sleep(1)
+    run_script('task.py')
     print("Script sequence completed.")
 
 if __name__ == "__main__":

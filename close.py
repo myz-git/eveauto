@@ -32,8 +32,8 @@ def find_and_close_icons(template_path, clf, scaler, w, h):
 
 def close_icons_main():
     # Load models and scalers
-    clf_close1 = load('trained_model_close1.joblib')
-    scaler_close1 = load('scaler_close1.joblib')
+    clf_close1 = load('model/trained_model_close1.joblib')
+    scaler_close1 = load('model/scaler_close1.joblib')
 
     # Define paths to icon templates
     icon_path_close1 = os.path.join('icon', 'close1-1.png')

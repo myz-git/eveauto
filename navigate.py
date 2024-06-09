@@ -9,6 +9,8 @@ import os
 from close import close_icons_main
 from outsite import outsite_icons_main
 
+import json
+
 
 # 在 talk.py 中添加对 close.py 的调用
 from outsite import outsite_icons_main
@@ -44,7 +46,7 @@ def find_and_click_icon(template, width, height, clf, scaler, max_attempts=10,of
                 y=max_loc[1] + height // 2+offset_y
                 pyautogui.moveTo(x, y)
                 
-                print(f"{template} detected and clicked.")
+                print(f"icon detected and clicked.")
                 return True
         attempts += 1
         print(f"Attempt {attempts}/{max_attempts}: Icon not found, retrying...")
@@ -93,21 +95,24 @@ def find_text_and_click(text, timeout=10,region=None,max_attempts=10):
         print(f"未找到 {text} . Exiting...")
     exit(1)
 
-def load_location_name():
-    """从文件读取位置名称。尝试不同的编码方式打开文件。"""
+
+def load_location_name(tag):
+    """从 JSON 格式的文件中读取位置名称。"""
     try:
-        with open('addr.txt', 'r', encoding='utf-8') as file:
-            line = file.readline()
-            prefix = 'addr='
-            if line.startswith(prefix):
-                return line[len(prefix):].strip('" \n')
+        with open('addr.txt', 'r', encoding='utf-8-sig') as file:
+            content = file.read()
+            print(content)  # 打印文件内容看是否正确读取
+            data = json.loads(content)
+            return data.get(tag)  # 获取 addr 键对应的值
+    except FileNotFoundError:
+        print("文件未找到。")
+    except json.JSONDecodeError:
+        print("解析 JSON 时出错。")
     except UnicodeDecodeError:
-        # 如果 UTF-8 失败，尝试使用 GBK 编码读取
-        with open('addr.txt', 'r', encoding='gbk') as file:
-            line = file.readline()
-            prefix = 'addr='
-            if line.startswith(prefix):
-                return line[len(prefix):].strip('" \n')
+        print("文件编码问题，无法读取。")
+    return None  # 如果发生错误或找不到 <{tag}>，返回 None
+
+
 
 
 def main():
@@ -117,8 +122,8 @@ def main():
 
 
     # 加载模型和标准化器，确保模型路径正确
-    clf_kjz1 = load('trained_model_kjz1.joblib')
-    scaler_kjz1 = load('scaler_kjz1.joblib')
+    clf_kjz1 = load('model/trained_model_kjz1.joblib')
+    scaler_kjz1 = load('model/scaler_kjz1.joblib')
     icon_path_kjz1 = os.path.join('icon', 'kjz1-1.png')
     
     # 加载和处理图标模板
@@ -127,8 +132,8 @@ def main():
     w_kjz1, h_kjz1 = template_gray_kjz1.shape[::-1]
 
 
-    clf_search1 = load('trained_model_search1.joblib')
-    scaler_search1 = load('scaler_search1.joblib')
+    clf_search1 = load('model/trained_model_search1.joblib')
+    scaler_search1 = load('model/scaler_search1.joblib')
     icon_path_search1 = os.path.join('icon', 'search1-1.png')
   
     template_search1 = cv2.imread(icon_path_search1, cv2.IMREAD_COLOR)
@@ -136,8 +141,8 @@ def main():
     w_search1, h_search1 = template_gray_search1.shape[::-1]
     
 
-    clf_zhongdian1 = load('trained_model_zhongdian1.joblib')
-    scaler_zhongdian1 = load('scaler_zhongdian1.joblib')
+    clf_zhongdian1 = load('model/trained_model_zhongdian1.joblib')
+    scaler_zhongdian1 = load('model/scaler_zhongdian1.joblib')
     icon_path_zhongdian1 = os.path.join('icon', 'zhongdian1-1.png')
   
     template_zhongdian1 = cv2.imread(icon_path_zhongdian1, cv2.IMREAD_COLOR)
@@ -156,7 +161,7 @@ def main():
     pyautogui.leftClick()
 
     # 3. 输入地点名称并回车
-    location_name = load_location_name()
+    location_name = load_location_name('addr')
     if location_name:
         pyperclip.copy(location_name)  # 复制地点名称到剪贴板
         pyautogui.hotkey('ctrl', 'v')  # 粘贴地点名称
