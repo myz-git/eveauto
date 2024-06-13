@@ -171,6 +171,7 @@ def main():
     # 4. 检测并点击空间站图标
     if find_and_click_icon(template_gray_kjz1, w_kjz1, h_kjz1, clf_kjz1, scaler_kjz1,3,0,22) :
         pyautogui.rightClick()
+        time.sleep(0.5) 
         # 5. 检测并点击 "设定为终点"
         find_and_click_icon(template_gray_zhongdian1, w_zhongdian1, h_zhongdian1, clf_zhongdian1, scaler_zhongdian1)
         time.sleep(0.5) 

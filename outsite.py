@@ -6,6 +6,13 @@ import time
 from joblib import load
 import os
 
+def scollscreen(max_attempts=10):
+    """转动屏幕"""
+    fx,fy=pyautogui.size()
+    pyautogui.moveTo(fx/2,fy/2+270,0.2)
+    pyautogui.dragRel(-50,0,0.4,pyautogui.easeOutQuad)    
+
+
 def capture_full_screen():
     screenshot = pyautogui.screenshot()
     screen_image = cv2.cvtColor(np.array(screenshot), cv2.COLOR_RGB2BGR)
@@ -39,6 +46,7 @@ def find_and_click_icon(template, width, height, clf, scaler, max_attempts=3,off
  
                 return True
         attempts += 1
+        scollscreen()
         print(f"Attempt {attempts}/{max_attempts}: Icon not found, retrying...")
         time.sleep(1)
     

@@ -21,7 +21,10 @@ pip install scikit-learn
 pip install scikit-image
 
 pip install cnocr
-pip install onnxruntime
+pip install cnocr[ort-gpu]
+pip uninstall onnxruntime
+pip install onnxruntime-gpu
+
 
 
 https://github.com/UB-Mannheim/tesseract/wiki

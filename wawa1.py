@@ -12,10 +12,8 @@ import os
 def scollscreen(max_attempts=10):
     """转动屏幕"""
     fx,fy=pyautogui.size()
-    pyautogui.moveTo(500,200)
-    pyautogui.dragRel(-50,-50,0.5,pyautogui.easeOutQuad)
-    #pyautogui.hotkey('ctrl', 'w')
-    pyautogui.scroll(20)
+    pyautogui.moveTo(fx/2,fy/2+270,0.2)
+    pyautogui.dragRel(-50,0,0.4,pyautogui.easeOutQuad)    
 
 def capture_full_screen():
     """捕获屏幕全部区域的截图并转换为OpenCV格式"""
@@ -38,15 +36,17 @@ def predict_icon_status(image, clf, scaler):
     return prediction == 1  # Returns True if the icon is active
 
 
-def find_icon(template, width, height, clf, scaler, max_attempts=10,offset_x=0,offset_y=0,region=None,):
+def find_and_click_icon(template, width, height, clf, scaler, max_attempts=10,offset_x=0,offset_y=0,region=None,):
     """查找图标并移动鼠标至图标上"""  
+    
     # 如果没有提供 region，使用全屏作为默认区域
     if region is None:
         fx, fy = pyautogui.size()
         region = (0, 0, fx, fy)
 
     attempts = 0
-    while attempts < max_attempts:        
+    while attempts < max_attempts:
+        scollscreen()  
         screen = capture_screen_area(region)
 
         gray_screen = cv2.cvtColor(screen, cv2.COLOR_BGR2GRAY)
@@ -72,10 +72,9 @@ def find_icon(template, width, height, clf, scaler, max_attempts=10,offset_x=0,o
                 print(f"moveTo:{x,y}")
                 """
                 print("Icon detected!")
-                return True  
-        attempts += 1        
+                return True
+        attempts += 1
         print(f"Attempt {attempts}/{max_attempts}: not found, Retrying...")
-        scollscreen()
         time.sleep(1)
     
     print("Icon Not found after maximum attempts. 程序终止...")
@@ -86,7 +85,8 @@ def find_icon(template, width, height, clf, scaler, max_attempts=10,offset_x=0,o
 def find_txt_ocr(txt,  max_attempts=10, region=None):
     """使用OCR在屏幕特定区域查找txt内容"""
     attempts = 0
-    while attempts < max_attempts:        
+    while attempts < max_attempts:
+        
         # 捕获屏幕区域图像
         screen = capture_screen_area(region)
         screen_image = cv2.cvtColor(np.array(screen), cv2.COLOR_BGR2RGB)
@@ -118,13 +118,59 @@ def find_txt_ocr(txt,  max_attempts=10, region=None):
                 return True
         #print(data)  # 打印所有识别到的文本，看是否包括目标文本
         time.sleep(1)
+        scollscreen() 
         attempts += 1
         print(f"Attempt {attempts}/{max_attempts}: {txt} not found, Retrying...")
-        scollscreen() 
         
 
     print(f"{txt} not found after maximum attempts. 程序终止!")
     exit(1)
+
+
+def lock_and_fight(txt,  max_attempts=10, region=None):
+    """使用OCR在屏幕特定区域查找txt内容"""
+    attempts = 0
+    while attempts < max_attempts:
+        
+        # 捕获屏幕区域图像
+        screen = capture_screen_area(region)
+        screen_image = cv2.cvtColor(np.array(screen), cv2.COLOR_BGR2RGB)
+        #对当前区域截图并弹出窗口 用于调试
+        #cv2.imshow('Captured Area', screen)
+        #cv2.waitKey(0)
+        #cv2.destroyAllWindows()
+        
+        # 初始化OCR工具
+        ocr = CnOcr()
+
+        # 执行OCR
+        res = ocr.ocr(screen_image)  # 使用 ocr 方法处理整个图像
+
+        # 打印OCR结果
+        #print("OCR results:", res)
+
+        # 遍历每一行的识别结果
+        for line in res:
+            if txt in line['text']:
+                # 假设我们可以获取到文字的位置
+                x = region[0] + line['position'][0][0] + (line['position'][1][0] - line['position'][0][0]) // 2
+                y = region[1] + line['position'][0][1] + (line['position'][2][1] - line['position'][0][1]) // 2
+            
+                # 移动鼠标并点击代理人名字
+                pyautogui.moveTo(x, y)
+                
+                print(f"{txt} dected at position ({x}, {y}).")
+                return True
+        #print(data)  # 打印所有识别到的文本，看是否包括目标文本
+        time.sleep(1)
+        scollscreen() 
+        attempts += 1
+        print(f"Attempt {attempts}/{max_attempts}: {txt} not found, Retrying...")
+        
+
+    print(f"{txt} not found after maximum attempts. 程序终止!")
+    exit(1)
+
 
 def main():
     # Load models and scalers
@@ -154,36 +200,60 @@ def main():
 
     # 设置需要捕获的屏幕区域
     fx,fy=pyautogui.size()
-    x0, y0, width0, height0 = 0, 100, 500, 900
+    #右侧面板All
+    x0, y0, width0, height0 = 1300, 50, 600, 1000
     region0=(x0,y0,width0,height0)
-    x1, y1, width1, height1 = 300, 50, 900, 900
+
+    #右侧面板2(不含右上角选择物体)
+    x1, y1, width1, height1 = 1300, 150, 600, 1000
     region1=(x1,y1,width1,height1)
     
 
-
+    
     # 1. 准备开始
     time.sleep(2)
     scollscreen()
-    # 查找[开始对话]
-    if find_icon(template_gray_talk1, w_talk1, h_talk1, clf_talk1, scaler_talk1,30,0,0,region0):
-        pyautogui.leftClick()        
-        print("开始对话...")
+
+    # 查找[SHUIPS]
+    if find_txt_ocr("SHUIPS",5,region1):
+        # 当找到[通用],并点击;
+        pyautogui.leftClick()
+        print("找到[SHUIPS]了...")
         time.sleep(1)
-    
-    # 查找[目标完成]
-    if find_txt_ocr("目标完成",5,region1):
-        # 当找到[目标完成],查找[完成任务了]并点击;
-        if find_icon(template_gray_talk2, w_talk2, h_talk2, clf_talk2, scaler_talk2,5,0,0,region1):
+
+    # 查找[小行星(水硼]
+    if find_txt_ocr("小行星(水硼",5,region1):
+        # 当找到[通用],并点击;
+        pyautogui.leftClick()
+        time.sleep(0.1)
+        print("找到[小行星(水硼]了...")
+
+        #环绕目标
+        pyautogui.hotkey('w')
+        time.sleep(0.1)
+
+        # 锁定目标
+        #pyautogui.hotkey('ctrl')
+        #time.sleep(1)
+        pyautogui.rightClick()
+        time.sleep(0.1)
+        if lock_and_fight("锁定目标",3,region1):
             pyautogui.leftClick()
-            print("完成任务了...")
+            time.sleep(0.2)
+            pyautogui.hotkey('F1')
+            pyautogui.hotkey('F2')
             
-    time.sleep(0.5)
-    # 执行关闭窗口操作
-    close_icons_main()
-    # 再按下 Ctrl+W
-    pyautogui.hotkey('ctrl', 'w')
+            while True:
+                time.sleep(30)
+                pyautogui.hotkey('F1')
+                pyautogui.hotkey('F2')
+                time.sleep(3)
+                pyautogui.hotkey('F1')
+                pyautogui.hotkey('F2')
+
+
+        
     print("任务结束...")
-    
     
 if __name__ == "__main__":
     main()
