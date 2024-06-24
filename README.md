@@ -24,6 +24,9 @@ pip install cnocr
 pip install cnocr[ort-gpu]
 pip uninstall onnxruntime
 pip install onnxruntime-gpu
+pip install pyttsx3
+
+pip install tensorflow
 
 
 
@@ -45,6 +48,7 @@ U:
 cd U:\evejump
 conda activate evejump
 tesseract -v
+
 
 
 ```
@@ -72,7 +76,17 @@ tesseract -v
 - **状态识别总是显示为可用**：确保预测使用的图像预处理与训练时一致，增加了状态预测的调试输出来帮助诊断问题。
 - **鼠标操作不准确**：修改了坐标计算方法，确保鼠标准确地移动到图标的中心并进行点击。
 
-## 实现步骤：
+
+
+## 文件说明
+
+`model_config.py`，所有与模型加载、模板创建、标准化器等相关的配置和函数
+
+
+
+
+
+## 实现步骤
 
 ### 跑路
 

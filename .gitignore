@@ -1,6 +1,8 @@
 local/
 *.log
 pic/
-studydata/
+traindata/
+machine/
+model/
 __pycache__/
 ~

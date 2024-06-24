@@ -2,187 +2,95 @@ import cv2
 import numpy as np
 import pyautogui
 import pytesseract
+import pyperclip  # 导入 pyperclip
 import time
 from joblib import load
-# 在 talk.py 中添加对 close.py 的调用
-from close import close_icons_main
-from cnocr import CnOcr
-
 import os
-def scollscreen(max_attempts=10):
-    """转动屏幕"""
-    fx,fy=pyautogui.size()
-    pyautogui.moveTo(500,200)
-    pyautogui.dragRel(-50,-50,0.5,pyautogui.easeOutQuad)
-    #pyautogui.hotkey('ctrl', 'w')
-    pyautogui.scroll(20)
+import json
+from cnocr import CnOcr
+import re
 
-def capture_full_screen():
-    """捕获屏幕全部区域的截图并转换为OpenCV格式"""
-    screenshot = pyautogui.screenshot()
-    screen_image = cv2.cvtColor(np.array(screenshot), cv2.COLOR_RGB2BGR)
-    return screen_image
+# 内部程序调用
+from say import speak
+from close import close_icons_main
+from utils import scollscreen, capture_screen_area, predict_icon_status, load_model_and_scaler,find_icon,load_location_name,find_txt_ocr,find_txt_ocr2
+from model_config import models, templates, screen_regions
+from navigate import navigate_main
 
-def capture_screen_area(region):
-    """捕获屏幕上指定区域的截图并转换为OpenCV格式"""
-    screenshot = pyautogui.screenshot(region=region)
-    screen_image = cv2.cvtColor(np.array(screenshot), cv2.COLOR_RGB2BGR)
-    return screen_image
+class IconNotFoundException(Exception):
+    """Exception raised when an icon is not found."""
+    pass
 
-def predict_icon_status(image, clf, scaler):
-    """Use a machine learning model to determine the status of an icon."""
-    hist = cv2.calcHist([image], [0, 1, 2], None, [8, 8, 8], [0, 256, 0, 256, 0, 256])
-    cv2.normalize(hist, hist)
-    hist_scaled = scaler.transform([hist.flatten()])
-    prediction = clf.predict(hist_scaled)[0]
-    return prediction == 1  # Returns True if the icon is active
+class GoodsNotFoundException(Exception):
+    """Exception raised when the specified goods are not found."""
+    pass
 
-
-def find_icon(template, width, height, clf, scaler, max_attempts=10,offset_x=0,offset_y=0,region=None,):
-    """查找图标并移动鼠标至图标上"""  
-    # 如果没有提供 region，使用全屏作为默认区域
-    if region is None:
-        fx, fy = pyautogui.size()
-        region = (0, 0, fx, fy)
-
-    attempts = 0
-    while attempts < max_attempts:        
-        screen = capture_screen_area(region)
-
-        gray_screen = cv2.cvtColor(screen, cv2.COLOR_BGR2GRAY)
-        res = cv2.matchTemplate(gray_screen, template, cv2.TM_CCOEFF_NORMED)
-        min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-        
-        #对当前区域截图并弹出窗口 用于调试
-        """
-        cv2.imshow('Captured Area', screen)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-        """
-
-        if max_val > 0.8:
-            icon_image = screen[max_loc[1]:max_loc[1]+height, max_loc[0]:max_loc[0]+width]
-            if predict_icon_status(icon_image, clf, scaler):
-                x=max_loc[0] + region[0] + width // 2 + offset_x
-                y=max_loc[1] + region[1] + height // 2 + offset_y
-                pyautogui.moveTo(x, y)
-                """
-                print(f"max_loc[0]:{max_loc[0]},width:{width}") 
-                print(f"max_loc[1]:{max_loc[1]},height:{height}") 
-                print(f"moveTo:{x,y}")
-                """
-                print("Icon detected!")
-                return True  
-        attempts += 1        
-        print(f"Attempt {attempts}/{max_attempts}: not found, Retrying...")
-        scollscreen()
-        time.sleep(1)
-    
-    print("Icon Not found after maximum attempts. 程序终止...")
-    # 程序退出
-    exit(1)
-
-
-def find_txt_ocr(txt,  max_attempts=10, region=None):
-    """使用OCR在屏幕特定区域查找txt内容"""
-    attempts = 0
-    while attempts < max_attempts:        
-        # 捕获屏幕区域图像
-        screen = capture_screen_area(region)
-        screen_image = cv2.cvtColor(np.array(screen), cv2.COLOR_BGR2RGB)
-        #对当前区域截图并弹出窗口 用于调试
-        #cv2.imshow('Captured Area', screen)
-        #cv2.waitKey(0)
-        #cv2.destroyAllWindows()
-        
-        # 初始化OCR工具
-        ocr = CnOcr()
-
-        # 执行OCR
-        res = ocr.ocr(screen_image)  # 使用 ocr 方法处理整个图像
-
-        # 打印OCR结果
-        #print("OCR results:", res)
-
-        # 遍历每一行的识别结果
-        for line in res:
-            if txt in line['text']:
-                # 假设我们可以获取到文字的位置
-                x = region[0] + line['position'][0][0] + (line['position'][1][0] - line['position'][0][0]) // 2
-                y = region[1] + line['position'][0][1] + (line['position'][2][1] - line['position'][0][1]) // 2
-            
-                # 移动鼠标并点击代理人名字
-                pyautogui.moveTo(x, y)
-                
-                print(f"{txt} dected at position ({x}, {y}).")
-                return True
-        #print(data)  # 打印所有识别到的文本，看是否包括目标文本
-        time.sleep(1)
-        attempts += 1
-        print(f"Attempt {attempts}/{max_attempts}: {txt} not found, Retrying...")
-        scollscreen() 
-        
-
-    print(f"{txt} not found after maximum attempts. 程序终止!")
-    exit(1)
 
 def main():
-    # Load models and scalers
-    clf_talk1 = load('model/trained_model_talk1.joblib')
-    scaler_talk1 = load('model/scaler_talk1.joblib')
-    clf_talk2 = load('model/trained_model_talk2.joblib')
-    scaler_talk2 = load('model/scaler_talk2.joblib')
-    clf_out1 = load('model/trained_model_out1.joblib')
-    scaler_out1 = load('model/scaler_out1.joblib')
 
-    # Define paths to icon templates
-    icon_path_talk1 = os.path.join('icon', 'talk1-1.png')
-    icon_path_talk2 = os.path.join('icon', 'talk2-1.png')
-    icon_path_out1 = os.path.join('icon', 'out1-1.png')
+    clf_talk1, scaler_talk1 = models['talk1']
+    template_talk1, w_talk1, h_talk1 = templates['talk1']
 
-    # Load and process icon templates
-    template_talk1 = cv2.imread(icon_path_talk1, cv2.IMREAD_COLOR)
-    template_gray_talk1 = cv2.cvtColor(template_talk1, cv2.COLOR_BGR2GRAY)
-    w_talk1, h_talk1 = template_gray_talk1.shape[::-1]
-    template_talk2 = cv2.imread(icon_path_talk2, cv2.IMREAD_COLOR)
-    template_gray_talk2 = cv2.cvtColor(template_talk2, cv2.COLOR_BGR2GRAY)
-    w_talk2, h_talk2 = template_gray_talk2.shape[::-1]
-    template_out1 = cv2.imread(icon_path_out1, cv2.IMREAD_COLOR)
-    template_gray_out1 = cv2.cvtColor(template_out1, cv2.COLOR_BGR2GRAY)
-    w_out1, h_out1 = template_gray_out1.shape[::-1]
+    clf_talk2, scaler_talk2 = models['talk2']
+    template_talk2, w_talk2, h_talk2 = templates['talk2']
 
+    clf_agent1, scaler_agent1 = models['agent1']
+    template_agent1, w_agent1, h_agent1 = templates['agent1']
+    
 
     # 设置需要捕获的屏幕区域
     fx,fy=pyautogui.size()
-    x0, y0, width0, height0 = 0, 100, 500, 900
-    region0=(x0,y0,width0,height0)
-    x1, y1, width1, height1 = 300, 50, 900, 900
-    region1=(x1,y1,width1,height1)
     
+    #左侧面板(左中)
+    mid_left_panel = screen_regions['mid_left_panel']
+    #中间对话框
+    agent_panel3 = screen_regions['agent_panel3']
+
+    #设置需要捕获的屏幕区域
+    agent_panel1 = screen_regions['agent_panel1']
+    #代理人列表窗口
+    agent_panel2 = screen_regions['agent_panel2']
 
 
     # 1. 准备开始
-    time.sleep(2)
-    scollscreen()
+    
     # 查找[开始对话]
-    if find_icon(template_gray_talk1, w_talk1, h_talk1, clf_talk1, scaler_talk1,30,0,0,region0):
+    if find_icon(template_talk1, w_talk1, h_talk1, clf_talk1, scaler_talk1,3,0,0,mid_left_panel):
         pyautogui.leftClick()        
         print("开始对话...")
         time.sleep(1)
+    else:
+         # 2. 查找"代理人"图标  
+        try:  
+            if find_icon(template_agent1, w_agent1, h_agent1, clf_agent1, scaler_agent1,2,0,0,agent_panel1):
+                pyautogui.leftClick()
+        except IconNotFoundException as e:
+            print(e)
     
+        # 3. 查找代理人
+        # 3.1 获得代理人名字
+        agent_name = load_location_name('agent')
+        print(f"agent={agent_name}")
+
+        # 3.2 通过OCR文字识别查找代理人
+        if find_txt_ocr(agent_name,1,agent_panel2):
+            pyautogui.hotkey('ctrl', 'w')
+            pyautogui.doubleClick()  # 双击打开代理人对话窗口
+            time.sleep(0.5)
+
+    # 4. 和代理人开始对话
     # 查找[目标完成]
-    if find_txt_ocr("目标完成",5,region1):
+    if find_txt_ocr("目标完成",3,agent_panel3):
         # 当找到[目标完成],查找[完成任务了]并点击;
-        if find_icon(template_gray_talk2, w_talk2, h_talk2, clf_talk2, scaler_talk2,5,0,0,region1):
+        if find_icon(template_talk2, w_talk2, h_talk2, clf_talk2, scaler_talk2,3,0,0,agent_panel3):
             pyautogui.leftClick()
             print("完成任务了...")
             
     time.sleep(0.5)
-    # 执行关闭窗口操作
-    close_icons_main()
-    # 再按下 Ctrl+W
-    pyautogui.hotkey('ctrl', 'w')
-    print("任务结束...")
+    print("任务完成,准备返航")
+    # 2. 设定返回导航 并出站
+    ##navigate_main()
+    #print("返航出站...")
     
     
 if __name__ == "__main__":

@@ -5,18 +5,18 @@ import pyautogui
 import time
 from joblib import load
 import os
+from model_config import models, templates
+from utils import capture_screen_area
 
-def capture_full_screen():
-    screenshot = pyautogui.screenshot()
-    screen_image = cv2.cvtColor(np.array(screenshot), cv2.COLOR_RGB2BGR)
-    return screen_image
 
-def find_and_close_icons(template_path, clf, scaler, w, h):
-    screen = capture_full_screen()
-    gray_screen = cv2.cvtColor(screen, cv2.COLOR_BGR2GRAY)
-    template = cv2.imread(template_path, cv2.IMREAD_COLOR)
-    template_gray = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
-    res = cv2.matchTemplate(gray_screen, template_gray, cv2.TM_CCOEFF_NORMED)
+def find_and_close_icons(template, clf, scaler, w, h):
+    
+    fx, fy = pyautogui.size()
+    region = (0, 0, fx, fy)
+    screen = capture_screen_area(region)
+
+    #res = cv2.matchTemplate(gray_screen, template_gray, cv2.TM_CCOEFF_NORMED)
+    res = cv2.matchTemplate(screen, template, cv2.TM_CCOEFF_NORMED) 
     threshold = 0.8
     loc = np.where(res >= threshold)
 
@@ -26,24 +26,17 @@ def find_and_close_icons(template_path, clf, scaler, w, h):
             global_y = pt[1] + h // 2
             pyautogui.moveTo(global_x+11, global_y)
             pyautogui.click()
-            print(f"Clicked close icon at: ({global_x}, {global_y})")
+            #print(f"Clicked close icon at: ({global_x}, {global_y})")
         return True
     return False
 
 def close_icons_main():
-    # Load models and scalers
-    clf_close1 = load('model/trained_model_close1.joblib')
-    scaler_close1 = load('model/scaler_close1.joblib')
+    # Load models and scalers"""加载模型和标准化器"""
+    clf_close1, scaler_close1 = models['close1']
+    template_close1, w_close1, h_close1 = templates['close1']
+    w_close1, h_close1 = template_close1.shape[1], template_close1.shape[0]  # 修改宽高的获取方式
 
-    # Define paths to icon templates
-    icon_path_close1 = os.path.join('icon', 'close1-1.png')
-
-    # Load and process icon templates
-    template_close1 = cv2.imread(icon_path_close1, cv2.IMREAD_COLOR)
-    template_gray_close1 = cv2.cvtColor(template_close1, cv2.COLOR_BGR2GRAY)
-    w_close1, h_close1 = template_gray_close1.shape[::-1]
-
-    find_and_close_icons(icon_path_close1, clf_close1, scaler_close1, w_close1, h_close1)
+    find_and_close_icons(template_close1, clf_close1, scaler_close1, w_close1, h_close1)
 
 if __name__ == "__main__":
     close_icons_main()

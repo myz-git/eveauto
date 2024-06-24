@@ -70,5 +70,5 @@ if __name__ == "__main__":
         sys.exit(1)
 
     template_filename = sys.argv[1]  # 从命令行参数获取图标文件名
-    save_folder = 'studydata'  # 指定保存图标图像的根文件夹
+    save_folder = 'traindata'  # 指定保存图标图像的根文件夹
     find_and_save_icon(template_filename, save_folder)
