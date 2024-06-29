@@ -209,3 +209,17 @@ def load_location_name(tag):
     except UnicodeDecodeError:
         print("文件编码问题，无法读取。")
     return None  # 如果发生错误或找不到 <{tag}>，返回 None
+
+def correct_string(input_str):
+    # 对OCR货物识别结果进行修证
+    rules = [
+        ('天', '大'),    # 将 '天' 替换为 '大'
+        ('性', '牲'),    # 将 '性' 替换为 '牲'
+        # 可以根据需要添加更多规则
+    ]
+    
+    # 应用每个规则进行替换
+    for old, new in rules:
+        input_str = re.sub(old, new, input_str)
+    
+    return input_str

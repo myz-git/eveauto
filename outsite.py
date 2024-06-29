@@ -10,12 +10,12 @@ from utils import capture_screen_area,find_icon
 
 
 def outsite_icons_main():
-    # Load models and scalers
+    # Load models and scalers   
     clf_out1, scaler_out1 = models['out1']
     template_out1, w_out1, h_out1 = templates['out1']
-
-    if find_icon(template_out1, w_out1, h_out1, clf_out1, scaler_out1,3):
+    if find_icon(template_out1, w_out1, h_out1, clf_out1, scaler_out1,5):
         pyautogui.leftClick()
+        time.sleep(1)
         outsite_check()
 
 def outsite_check():

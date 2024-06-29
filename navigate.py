@@ -66,7 +66,9 @@ def navigate_main():
     close_icons_main()
     pyautogui.hotkey('ctrl', 'w')
     #出站
+    time.sleep(2) 
     outsite_icons_main()
+   
 
 
 if __name__ == "__main__":

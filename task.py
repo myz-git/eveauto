@@ -14,7 +14,7 @@ import re
 from say import speak
 from close import close_icons_main
 from outsite import outsite_icons_main,outsite_check
-from utils import scollscreen, capture_screen_area, predict_icon_status, load_model_and_scaler,find_icon,load_location_name,find_txt_ocr,find_txt_ocr2
+from utils import scollscreen, capture_screen_area, predict_icon_status, load_model_and_scaler,find_icon,load_location_name,find_txt_ocr,find_txt_ocr2,correct_string
 from model_config import models, templates, screen_regions
 
 class IconNotFoundException(Exception):
@@ -94,8 +94,8 @@ def move_goods(goods):
             print("4.2 搜索仓库..")
             pyautogui.leftClick()        
             #pyperclip.copy(goods)  # 复制名称到剪贴板
-            #pyperclip.copy(goods[:3])  # 复制截取前3个汉字到剪贴板
-            pyperclip.copy(goods)  # 复制货物到剪贴板
+            pyperclip.copy(goods[:4])  # 复制截取前4个汉字到剪贴板
+            #pyperclip.copy(goods[2:])  # 复制截取从第2位开始取3个汉字到剪贴板  (避免识别 "一大群.."为"一天群")
             pyautogui.leftClick() 
             time.sleep(0.5)
             pyautogui.hotkey('ctrl', 'v')  # 粘贴名称
@@ -258,16 +258,21 @@ def main():
                 time.sleep(0.5)
 
     pyautogui.hotkey('ctrl', 'w')
-    print(f"任务目标:运送[{goods}]")
-
+    
+    #对OCR识别结果进行修正
+    goods=correct_string(goods)
+    print(f"任务目标:运送[{goods}]")  
+    
     # 从仓库移动货物到船仓
-    subgood=goods[:3] #截取货物名称前三位
-    move_goods(subgood)
+    #subgood=goods[:-1] #截取货物名称前三位
+    #move_goods(subgood)
+    move_goods(goods)
 
     # 9. 出站
     close_icons_main()    
     pyautogui.hotkey('ctrl', 'w')
     
+    """
     # 出站, 并检查出站时是否货柜缺失弹窗
     time.sleep(1)
     attempts = 0
@@ -283,7 +288,8 @@ def main():
             
             goodstmp = find_txt_ocr2('你需要有', 3, need_goods_panel)
             if goodstmp:
-                pyperclip.copy(goodstmp[-5:-2])  # 获取并处理货物名称
+                #pyperclip.copy(goodstmp[-5:-2])  # 获取并处理货物名称
+                pyperclip.copy(goodstmp[:3])  # 获取并处理货物名称(前三位)
                 move_goods(goodstmp)
 
             time.sleep(0.5)
@@ -293,9 +299,9 @@ def main():
             print(e)
             time.sleep(0.5)  # 出现异常时等待一段时间再重试
 
-    close_icons_main() 
-    pyautogui.hotkey('ctrl', 'w')
+    """
     print("出站中,请等待...")
+    outsite_icons_main()
     outsite_check()
 
 if __name__ == "__main__":
