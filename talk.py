@@ -1,14 +1,8 @@
-import cv2
 import numpy as np
 import pyautogui
-import pytesseract
-import pyperclip  # 导入 pyperclip
 import time
 from joblib import load
-import os
-import json
 from cnocr import CnOcr
-import re
 
 # 内部程序调用
 from say import speak

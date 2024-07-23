@@ -1,10 +1,8 @@
 # outsite.py
-import cv2
 import numpy as np
 import pyautogui
 import time
 from joblib import load
-import os
 from model_config import models, templates
 from utils import capture_screen_area,find_icon
 

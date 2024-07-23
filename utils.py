@@ -211,10 +211,12 @@ def load_location_name(tag):
     return None  # 如果发生错误或找不到 <{tag}>，返回 None
 
 def correct_string(input_str):
-    # 对OCR货物识别结果进行修证
+    # 对OCR货物识别易错的结果进行二次修证
     rules = [
         ('天', '大'),    # 将 '天' 替换为 '大'
         ('性', '牲'),    # 将 '性' 替换为 '牲'
+        ('拉', '垃'),
+        ('级', '圾'),
         # 可以根据需要添加更多规则
     ]
     

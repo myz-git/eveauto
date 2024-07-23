@@ -1,12 +1,6 @@
-import cv2
 import numpy as np
 import pyautogui
-import pytesseract
-import pyperclip  # 导入 pyperclip
 import time
-import os
-import json
-import re
 from joblib import load
 
 # 内部程序调用

@@ -1,12 +1,8 @@
-import cv2
 import numpy as np
 import pyautogui
-import pytesseract
 import pyperclip  # 导入 pyperclip
 import time
 from joblib import load
-import os
-import json
 from cnocr import CnOcr
 import re
 
@@ -64,8 +60,9 @@ def get_goods(template, width, height, clf, scaler, max_attempts=3, offset_x=0, 
 def move_goods(goods):
     # 从仓库搬运货物到舰船机库
     # 打开仓库
+    print("3.1 打开仓库")
     pyautogui.hotkey('alt', 'c')
-     
+    time.sleep(0.5)
     cangku_panel3 = screen_regions['cangku_panel3']
 
     clf_search2, scaler_search2 = models['search2']
@@ -77,21 +74,21 @@ def move_goods(goods):
     clf_jiku2, scaler_jiku2 = models['jiku2']
     template_jiku2, w_jiku2, h_jiku2 = templates['jiku2']
     # 获取机库坐标   
-    print("3.0 找机库坐标")
+    print("3.2 找机库坐标")
     if find_icon(template_jiku1, w_jiku1, h_jiku1, clf_jiku1, scaler_jiku1,2,20,0,cangku_panel3):
-        print("3.1 找机库坐标")
+        print("3.2.1 找机库坐标")
         jiku_x,jiku_y = pyautogui.position() 
 
         # 激活仓库   
         if find_icon(template_jiku2, w_jiku2, h_jiku2, clf_jiku2, scaler_jiku2,2,0,0,cangku_panel3):
-            print("3.2激活仓库")
+            print("3.2.2 激活仓库")
             pyautogui.leftClick()
             time.sleep(0.2)
 
         # 8.搜索仓库
-        print("4.1 查找仓库搜索栏")
+        print("3.3 查找仓库搜索栏")
         if find_icon(template_search2, w_search2, h_search2, clf_search2, scaler_search2,5,0,0,cangku_panel3):
-            print("4.2 搜索仓库..")
+            print("3.4 搜索仓库..")
             pyautogui.leftClick()        
             #pyperclip.copy(goods)  # 复制名称到剪贴板
             pyperclip.copy(goods[:4])  # 复制截取前4个汉字到剪贴板
@@ -106,7 +103,7 @@ def move_goods(goods):
             pyautogui.dragTo(jiku_x+10,jiku_y,1,pyautogui.easeOutQuad)
             time.sleep(0.5)
             pyautogui.hotkey('ctrl', 'w')
-            print(f"[{goods}]已放入机库中,请检查...")
+            print(f"3.5 [{goods}]已放入机库中,请检查...")
 
 def check_goods(cangku_panel3):
     print("通过OCR文字识别是否有[货柜缺失]弹窗")
@@ -195,7 +192,7 @@ def main():
     # 0.4. 和代理人开始对话
 
     """↓↓↓ 低安特供 ↓↓↓"""
-    """
+    #"""
     try:
         goods=get_goods(template_yunshumubiao1, w_yunshumubiao1, h_yunshumubiao1, clf_yunshumubiao1, scaler_yunshumubiao1,2,0,0,agent_panel3)
         print(f"0.5.0 低安任务直接获得货物:{goods}")
@@ -207,7 +204,7 @@ def main():
             time.sleep(0.5)
     except GoodsNotFoundException as e:
         print(e)
-    """
+   #"""
     """↑↑↑ 低安特供 ↑↑↑"""
 
 
@@ -257,7 +254,7 @@ def main():
                 pyautogui.hotkey('ctrl', 'w')
                 time.sleep(0.5)
 
-    pyautogui.hotkey('ctrl', 'w')
+    #pyautogui.hotkey('ctrl', 'w')
     
     #对OCR识别结果进行修正
     goods=correct_string(goods)
@@ -266,8 +263,13 @@ def main():
     # 从仓库移动货物到船仓
     #subgood=goods[:-1] #截取货物名称前三位
     #move_goods(subgood)
+    time.sleep(0.5)
+    print(f"准备搬运{goods}")
+    pyautogui.hotkey('alt', 'f')
+    print(f"准备搬运2222{goods}")
+    time.sleep(5)
     move_goods(goods)
-
+                                                                   
     # 9. 出站
     close_icons_main()    
     pyautogui.hotkey('ctrl', 'w')

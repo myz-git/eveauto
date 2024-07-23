@@ -1,11 +1,85 @@
 ## 项目目的
 
-目标是在 EVE Online 游戏中导航界面上的某个图标（例如“跳跃”图标），通过图像识别技术检测图标的状态（可用或不可用），并在图标处于可用状态时自动执行鼠标点击。
+实现持续自动执行物流任务;
+
+
+
+## 项目架构
+
+|------eveauto------
+|-go.py 
+| 功能:启动及调度程序
+| 说明:实现按顺序循环执行"接任务,送货,交任务,回程导航,返回"五个步骤,对应调用'task.py', 'jump1.py', 'talk.py', 'navigate.py', 'jump2.py';
+|-
+|-task.py
+| 功能:接任务程序;
+| 说明:实现在空间站自动找代理人谈话并接受任务,获得货物;
+|
+|-jump1.py
+| 功能:送货;
+| 说明:设定送货任务目的地,并前往目的地空间站;
+|
+|-talk.py
+| 功能:交任务;
+| 说明:在目的地空间站和代理人谈话交任务;
+|
+|-navigate.py
+| 功能:回程导航
+|说明:设定返回目的地的导航,并出站;
+|
+|-jump2.py
+| 功能:返回
+| 说明:返回接任务的空间站;
+|
+|-outsite.py
+| 功能:出站
+| 说明:离开当前空间站;
+|
+|-say.py
+| 功能:播报
+| 说明:语音播报;
+|
+|-utils.py
+| 功能:通用功能函数
+| 说明:包括图像识别,文字识别,图标状态识别等通用函数
+|
+|-model_config.py
+| 功能:加载模型函数
+| 说明:定义图标模板和模型路径,以及图像识别区域配置
+|-----------------------
+
+|----模型训练相关-------
+|-snap.py
+|-功能:自动抓取图标
+|-说明:根据给定的样例图标,程序运行时自动抓取不同背景下的图标并保存在训练文件中;
+|-
+|-train1stat.py
+|-功能:训练模型函数(单状态)
+|-说明:使用机器学习判断图标状态生成训练模型
+|-
+|-train2stat.py
+|-功能:训练模型函数(双状态)
+|-说明:使用机器学习判断图标状态生成训练模型
+|-
+|-testtrain.py
+|-功能:模型验证 
+|-说明:对训练模型进行反向验证 ,查看验证反馈
+|-
+|-icon  需要识别的图标样例
+|-traindata 用来训练的图标
+|-model 训练后的图标模型
+|-----------------------
+
+
+
+
+
+
 
 ## 环境准备
 
 ```
-cd U:\evejump
+cd D:\Workspace\git\eveauto
 conda remove -n evejump --all
 conda create -n evejump python=3.10.6
 conda activate evejump
@@ -21,34 +95,15 @@ pip install scikit-learn
 pip install scikit-image
 
 pip install cnocr
-pip install cnocr[ort-gpu]
-pip uninstall onnxruntime
-pip install onnxruntime-gpu
+pip install onnxruntime
+##pip uninstall cnocr[ort-gpu]
+##pip install cnocr[ort-gpu]
+##pip uninstall onnxruntime
+##pip install onnxruntime-gpu
+
 pip install pyttsx3
-
 pip install tensorflow
-
-
-
-https://github.com/UB-Mannheim/tesseract/wiki
-https://digi.bib.uni-mannheim.de/tesseract/tesseract-ocr-w64-setup-5.3.4.20240503.exe
-下载及安装tesseract, 安装时语言包勾选中文(简体,繁体,水平,垂直)
-将 Tesseract 的安装目录添加到你的系统环境变量中。这样，你就不需要在脚本中指定它的路径了。
-右击“此电脑”或“计算机”图标，选择“属性”。
-选择“高级系统设置”。
-点击“环境变量”按钮。
-在“系统变量”区域，找到并双击“Path”变量。
-点击“新建”并输入 Tesseract 的安装目录，如 C:\Program Files\Tesseract-OCR。
-
-
-conda deactivate
-exit 
-新建cmd窗口
-U:
-cd U:\evejump
-conda activate evejump
-tesseract -v
-
+pip install keyboard
 
 
 ```
@@ -56,16 +111,27 @@ tesseract -v
 ## 实现技术
 
 1. **图像捕获与处理**：
+   
    - 使用 `pyautogui` 和 `OpenCV` 捕获指定屏幕区域的图像。
    - 处理图像以便后续的模板匹配和状态识别。
+   
 2. **模板匹配**：
    - 利用 `OpenCV` 的模板匹配功能来定位屏幕上的图标。使用了图标的灰度模板与屏幕截图的灰度版本进行匹配。
+   
    - 计算图标的精确位置，包括左上角和中心点坐标。
+   
 3. **状态识别**：
+   
    - 通过机器学习模型（使用随机森林分类器），根据图像的彩色直方图特征来预测图标的状态（可用或不可用）。
    - 使用 `StandardScaler` 进行特征的标准化处理，确保预测时的数据处理与训练模型时相同。
+   
+4. **文字识别**：
+   
+   使用CNOCR
+   
 4. **自动操作执行**：
    - 根据图标的状态，如果图标可用，则自动移动鼠标到图标的中心坐标并执行点击操作。
+   
 5. **调试与优化**：
    - 逐步调试程序，确保图标可以准确地被定位和识别。
    - 解决了图像捕获、模板匹配精度、状态预测准确性以及坐标转换等方面的问题。
@@ -78,17 +144,9 @@ tesseract -v
 
 
 
-## 文件说明
-
-`model_config.py`，所有与模型加载、模板创建、标准化器等相关的配置和函数
-
-
-
-
-
 ## 实现步骤
 
-### 跑路
+### 模型准备
 
 1. #### 截取识别图标 
 
@@ -102,7 +160,7 @@ tesseract -v
 
    
 
-2. ####  准备训练图片
+2. #### 准备训练图片
 
    2.1 游戏中在显示jump3-1.png图标时, 执行 python snap.py jump3-1.png  , 然后缓慢移动游戏界面,表现出图标不同的背景的展现;,  此时snap.py会对该图标进行持续人截图并保存到studydata下(默认每秒截取1次,持续100次)  自动保存在studydata/jump3-1下作为训练素
 
@@ -110,7 +168,7 @@ tesseract -v
 
    
 
-3. ####  使用机器学习判断图标状态生成训练模型
+3. #### 使用机器学习判断图标状态生成训练模型
 
    3.1 执行python  study2sta.py  jump3 对具有两种状态的图标(如jump3-1.png, jump3-0.png)  进行机器学习训练识别能力,获得trained_model_jump3.joblib, scaler_jump3.joblib训练模型;
 
@@ -120,7 +178,7 @@ tesseract -v
 
    
 
-4. ####  模型验证 
+4. #### 模型验证 
 
    对训练模型进行反向验证 ,查看验证反馈, 
 
@@ -163,9 +221,7 @@ tesseract -v
 
    
 
-
-
-### 交任务
+### 示例: 交任务
 
 #### 1. 准备识别图标 
 
@@ -173,7 +229,7 @@ tesseract -v
 
 注:  背景要清晰纯色 ,能够突显图标;
 
-#### 2. 准备训练图片
+#### 2.准备训练图片
 
 ```
 python snap.py talk1-1.png
@@ -219,7 +275,7 @@ x1, y1, width1, height1 = 0, 0, 400, 500 # 设置为需要捕获的屏幕区域
 
 
 
-### 接任务
+### 示例: 接任务
 
 #### 1. 找代理人谈话
 
