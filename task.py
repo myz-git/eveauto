@@ -271,8 +271,9 @@ def main():
     move_goods(goods)
                                                                    
     # 9. 出站
-    close_icons_main()    
-    pyautogui.hotkey('ctrl', 'w')
+    close_icons_main()   
+    time.sleep(1) 
+    #pyautogui.hotkey('ctrl', 'w')
     
     """
     # 出站, 并检查出站时是否货柜缺失弹窗

@@ -89,10 +89,10 @@ conda activate evejump
 ##pip install scipy
 ##pip install pypinyin
 
-pip install pillow pyautogui pytesseract
+pip install pillow pyautogui 
 pip install opencv-python numpy
-pip install scikit-learn
-pip install scikit-image
+pip install scikit-learn scikit-image
+pip install 
 
 pip install cnocr
 pip install onnxruntime

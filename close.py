@@ -26,6 +26,7 @@ def find_and_close_icons(template, clf, scaler, w, h):
             global_y = pt[1] + h // 2
             pyautogui.moveTo(global_x+11, global_y)
             pyautogui.click()
+            time.sleep(1) 
             #print(f"Clicked close icon at: ({global_x}, {global_y})")
         return True
     return False
