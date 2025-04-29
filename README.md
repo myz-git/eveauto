@@ -1,4 +1,4 @@
-## 项目目的
+## 项目描述
 
 实现持续自动执行物流任务;
 
@@ -104,6 +104,7 @@ pip install onnxruntime
 pip install pyttsx3
 pip install tensorflow
 pip install keyboard
+pip install pynput
 
 
 ```
@@ -225,61 +226,75 @@ pip install keyboard
 
 #### 1. 准备识别图标 
 
-截图icon/talk1-1.png  大小244*28, 该图标就一种状态;
+截图icon/tingkao-1.png, 该图标就一种状态;
 
 注:  背景要清晰纯色 ,能够突显图标;
 
 #### 2.准备训练图片
 
 ```
-python snap.py talk1-1.png
+python snap.py tingkao-1.png,
 ```
 
-多生成几次, 图片保存在studydata\talk1-1下
+多生成几次, 图片保存在studydata\tingkao-1下
 
 #### 3. 训练模型
 
 因为只有一种状态,因此使用 study1sta.py
 
 ```
-python study1sta.py talk1
+python study1sta.py tingkao
 ```
 
 测试集上的准确率: 1.0
-Model and scaler saved: trained_model_talk1.joblib, scaler_talk1.joblib
+Model and scaler saved: model/trained_model_tingkao.joblib, model/scaler_tingkao.joblib
 
 #### 4. 模型验证
 
 ```
-python teststudy.py talk1
+python teststudy.py tingkao
 ```
 
 ...
 
-Image: studydata/talk1-1\talk1-1-98.png - Expected: 1, Predicted: 1
-Image: studydata/talk1-1\talk1-1-99.png - Expected: 1, Predicted: 1
-Accuracy in studydata/talk1-1: 100.00%
+### 主程序使用模型
 
-#### 5. 主程序使用模型
+#### 修改model_config.py
 
-##### 5.1 确定捕捉区域
+##### 确定捕捉区域
 
 截个游戏界面全图,使用图像软件如GIMP, 确定捕捉区域坐标;
 
-左上角坐标：(0, 0)
-x1, y1, width1, height1 = 0, 0, 400, 500 # 设置为需要捕获的屏幕区域
+新增model_config.py中的screen_regions范围,这里使用mid_left_panel
 
+说明:x1, y1, width1, height1 = 0, 0, 400, 500 # 设置为需要捕获的屏幕区域
 
+##### 加载模型
 
+```
+model_names = ['jump0', 'jump1', 'jump2', 'jump3', 'zhongdian2', 'out1','close1','agent1','agent2','agent3','yunshumubiao1','search2','jiku1','jiku2','chakanrenwu1','talk1','talk2','kjz1','search1','zhongdian1','zonglan1','tingkao']
+```
 
+### 主程序中使用模型
+
+加载模型
+
+```
+clf_tingkao, scaler_tingkao = models['tingkao']
+    template_tingkao, w_tingkao, h_tingkao = templates['tingkao']
+```
+
+设定检查区域:
+
+```
+mid_left_panel = screen_regions['mid_left_panel']
+```
 
 
 
 ### 示例: 接任务
 
-#### 1. 找代理人谈话
-
-##### 1).准备模型
+#### 训练游戏中代理人图标识别模型
 
 **a.识别图标agent1** 
 
@@ -293,7 +308,7 @@ x1, y1, width1, height1 = 0, 0, 400, 500 # 设置为需要捕获的屏幕区域
 python snap.py agent1-0.png
 ```
 
-​	在游戏中展现agent1-0的界面, 缓慢移动背景,展现不同背景下agent1-0,一两分钟后,停止snap.py, 检查studydata/agent1-0/下抓取的图片是否有不符合的; 
+​	在游戏中展现agent1-0的界面, 缓慢移动背景,展现不同背景下agent1-0,一两分钟后,停止snap.py, 检查traindata/agent1-0/下抓取的图片是否有不符合的; 
 
 **c. 准备1状态(agent1-1)训练图片**
 
@@ -302,10 +317,8 @@ python snap.py agent1-0.png
 **d.训练agent1**
 
 ```
-python study2sta.py agent1
---1个状态用study1sta,2个状态用study2sta
-测试集上的准确率: 1.0
-Model and scaler saved: trained_model_agent1.joblib, scaler_agent1.joblib
+python train2stat.py agent1
+--如果是1个状态用train1stat.py程序 ,是2个状态用train2stat.py 
 ```
 
 得到模型: **trained_model_agent1.joblib, scaler_agent1.joblib**

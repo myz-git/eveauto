@@ -20,7 +20,7 @@ def scollscreen():
     """水平转动屏幕"""
     time.sleep(0.2)
     fx, fy = pyautogui.size()
-    pyautogui.moveTo(100, 600)
+    pyautogui.moveTo(250, 700)
     pyautogui.dragRel(-30, 0, 0.5, pyautogui.easeOutQuad)
 
 
@@ -83,7 +83,7 @@ def load_model_and_scaler(model_path):
     scaler = load(f'{model_path}_scaler.joblib')
     return clf, scaler
 
-def find_icon(template, width, height, clf, scaler, max_attempts=10, offset_x=0, offset_y=0, region=None, exflg=False):
+def find_icon(template, width, height, clf, scaler, max_attempts=10, offset_x=0, offset_y=0, region=None, exflg=False,threshold=0.83):
     if region is None:
         fx, fy = pyautogui.size()
         region = (0, 0, fx, fy)
@@ -99,7 +99,7 @@ def find_icon(template, width, height, clf, scaler, max_attempts=10, offset_x=0,
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
         print(f"Attempt {attempts + 1}, max_val: {max_val}")  # 打印当前的最大匹配值
 
-        if max_val > 0.8:
+        if max_val > threshold:
             icon_image = screen[max_loc[1]:max_loc[1] + height, max_loc[0]:max_loc[0] + width]
             if predict_icon_status(icon_image, clf, scaler):
                 x = max_loc[0] + region[0] + width // 2 + offset_x
@@ -217,6 +217,8 @@ def correct_string(input_str):
         ('性', '牲'),    # 将 '性' 替换为 '牲'
         ('拉', '垃'),
         ('级', '圾'),
+        ('杀', 'OP杀'),  #'杀虫' 替换 为'OP杀虫'
+        ('者门', '看门'),
         # 可以根据需要添加更多规则
     ]
     
@@ -225,3 +227,12 @@ def correct_string(input_str):
         input_str = re.sub(old, new, input_str)
     
     return input_str
+
+def load_config():
+    config = {}
+    with open('cfg.txt', 'r') as file:
+        lines = file.readlines()
+        for line in lines:
+            key, value = line.strip().split('=')
+            config[key.strip()] = value.strip()
+    return config

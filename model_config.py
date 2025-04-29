@@ -17,11 +17,12 @@ icon_base_path = 'icon'
 
 # 模型和模板加载
 """
-jump0 小黄门 
+jump0 小黄门(跃迁星门)
 jump1 跳跃模型
 jump2 跃迁
-jump3 停靠
-zhongdian2 终点
+jump3 停靠小图标
+jump4 小黄门(本地空间站)
+zhongdian2 设置为终点2
 out1 离站
 close1 关闭窗口
 agent1 代理人
@@ -33,11 +34,12 @@ jiku11 机库
 jiku2 仓库
 chakanrenwu1 查看任务
 kjz1 空间站(1)
-zhongdian1 设置为终点
+zhongdian1 设置为终点1
 search1  "地点 搜素"
 zonglan1 总览
+tingkao 停靠
 """
-model_names = ['jump0', 'jump1', 'jump2', 'jump3', 'zhongdian2', 'out1','close1','agent1','agent2','agent3','yunshumubiao1','search2','jiku1','jiku2','chakanrenwu1','talk1','talk2','kjz1','search1','zhongdian1','zonglan1']
+model_names = ['jump0', 'jump1', 'jump2', 'jump3', 'zhongdian2', 'out1','close1','agent1','agent2','agent3','yunshumubiao1','search2','jiku1','jiku2','chakanrenwu1','talk1','talk2','kjz1','search1','zhongdian1','zonglan1','tingkao','jump4']
 models = {name: load_model_and_scaler(base_path, name) for name in model_names}
 templates = {name: load_template(os.path.join(icon_base_path, f'{name}-1.png')) for name in model_names}
 

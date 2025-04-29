@@ -9,6 +9,7 @@ import os
 import json
 from cnocr import CnOcr
 import re
+import pynput
 
 # 内部程序调用
 from say import speak
@@ -32,25 +33,47 @@ def navigate_main():
 
 
     # 执行关闭窗口操作
-    time.sleep(2)
-    close_icons_main()
+    time.sleep(1)
+    #close_icons_main()
 
-    # 1. 按 'l' 键打开地点搜索窗口
-    pyautogui.press('l')
+    # 1. 按 'l' 键打开地点搜索窗口   
+    #pyautogui.press('l')
     
+    location_name = load_location_name('addr')
+    ctr = pynput.keyboard.Controller()
+    '''
+    with ctr.pressed(
+            'l'):
+        time.sleep(1)  
+        pass
+    '''
+    time.sleep(1)
     # 2. 检测并点击 "搜索"
-    if find_icon(template_search1, w_search1, h_search1, clf_search1, scaler_search1,2,22,0):
+    #if find_icon(template_search1, w_search1, h_search1, clf_search1, scaler_search1,3,22,0):
+    if find_txt_ocr('搜索',3):
         pyautogui.leftClick()
 
         # 3. 输入地点名称并回车
-        location_name = load_location_name('addr')
-        if location_name:
-            pyperclip.copy(location_name)  # 复制地点名称到剪贴板
-            pyautogui.leftClick() 
-            time.sleep(1)
-            pyautogui.hotkey('ctrl', 'v')  # 粘贴地点名称
-            pyautogui.press('enter')
-            time.sleep(1)  # 等待搜索结果
+        pyperclip.copy(location_name)  # 复制地点名称到剪贴板
+        pyautogui.leftClick() 
+        time.sleep(1)
+        #pyautogui.hotkey('ctrl', 'v')  # 粘贴地点名称
+        #pyautogui.press('enter')
+        with ctr.pressed(
+                pynput.keyboard.Key.ctrl,
+                'v'):
+            time.sleep(0.8)
+            pass 
+
+        time.sleep(1)
+        with ctr.pressed(
+                pynput.keyboard.Key.enter
+                ):
+            time.sleep(0.8)
+            pass             
+        
+
+        time.sleep(1)  # 等待搜索结果
     
         # 4. 检测并点击空间站图标
         if find_icon(template_kjz1, w_kjz1, h_kjz1, clf_kjz1, scaler_kjz1,2,0,22) :
@@ -58,13 +81,18 @@ def navigate_main():
             time.sleep(0.5) 
             # 5. 检测并点击 "设定为终点"
             if find_icon(template_zhongdian1, w_zhongdian1, h_zhongdian1, clf_zhongdian1, scaler_zhongdian1,2):
-                time.sleep(0.5) 
+                time.sleep(0.8) 
                 pyautogui.leftClick()
-                time.sleep(0.5) 
+                time.sleep(0.8) 
                 print("导航已设定!")
 
     close_icons_main()
-    pyautogui.hotkey('ctrl', 'w')
+    #关闭窗口(ctrl+w)
+    with ctr.pressed(
+            pynput.keyboard.Key.ctrl,
+            'w'):
+        time.sleep(0.3)
+        pass    
     #出站
     time.sleep(2) 
     outsite_icons_main()

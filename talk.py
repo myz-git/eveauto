@@ -3,6 +3,7 @@ import pyautogui
 import time
 from joblib import load
 from cnocr import CnOcr
+import pynput
 
 # 内部程序调用
 from say import speak
@@ -45,7 +46,7 @@ def main():
     #代理人列表窗口
     agent_panel2 = screen_regions['agent_panel2']
 
-
+    ctr = pynput.keyboard.Controller()
     # 1. 准备开始
     
     # 查找[开始对话]
@@ -68,7 +69,12 @@ def main():
 
         # 3.2 通过OCR文字识别查找代理人
         if find_txt_ocr(agent_name,1,agent_panel2):
-            pyautogui.hotkey('ctrl', 'w')
+            #pyautogui.hotkey('ctrl', 'w')
+            with ctr.pressed(pynput.keyboard.Key.ctrl,'w'):
+                time.sleep(0.3)
+                pass                             
+            time.sleep(0.5)            
+            
             pyautogui.doubleClick()  # 双击打开代理人对话窗口
             time.sleep(0.5)
 

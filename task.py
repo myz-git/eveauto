@@ -5,6 +5,8 @@ import time
 from joblib import load
 from cnocr import CnOcr
 import re
+import pynput
+
 
 # 内部程序调用
 from say import speak
@@ -61,7 +63,15 @@ def move_goods(goods):
     # 从仓库搬运货物到舰船机库
     # 打开仓库
     print("3.1 打开仓库")
-    pyautogui.hotkey('alt', 'c')
+    #pyautogui.hotkey('alt', 'c')
+    ctr = pynput.keyboard.Controller()
+    with ctr.pressed(
+            pynput.keyboard.Key.alt,
+            'c'):
+        time.sleep(0.5)  
+        pass    
+
+
     time.sleep(0.5)
     cangku_panel3 = screen_regions['cangku_panel3']
 
@@ -95,24 +105,40 @@ def move_goods(goods):
             #pyperclip.copy(goods[2:])  # 复制截取从第2位开始取3个汉字到剪贴板  (避免识别 "一大群.."为"一天群")
             pyautogui.leftClick() 
             time.sleep(0.5)
-            pyautogui.hotkey('ctrl', 'v')  # 粘贴名称
-            pyautogui.press('enter')
+            #pyautogui.hotkey('ctrl', 'v')  # 粘贴名称
+            #pyautogui.press('enter')
+            with ctr.pressed(pynput.keyboard.Key.ctrl,'v'):
+                time.sleep(0.5)
+                pass 
+            time.sleep(0.5)
+            with ctr.pressed(pynput.keyboard.Key.enter):
+                time.sleep(0.5)
+                pass  
+
             time.sleep(1)
             pyautogui.moveRel(-50,65)
             time.sleep(0.5)
             pyautogui.dragTo(jiku_x+10,jiku_y,1,pyautogui.easeOutQuad)
             time.sleep(0.5)
-            pyautogui.hotkey('ctrl', 'w')
+            #pyautogui.hotkey('ctrl', 'w')
+            with ctr.pressed(pynput.keyboard.Key.ctrl,'w'):
+                time.sleep(0.3)
+                pass                             
+            time.sleep(0.5)            
             print(f"3.5 [{goods}]已放入机库中,请检查...")
 
 def check_goods(cangku_panel3):
     print("通过OCR文字识别是否有[货柜缺失]弹窗")
     try:
         # 尝试找到 "货柜缺失" 文本
+        ctr = pynput.keyboard.Controller()
         if find_txt_ocr('货柜缺失', 1, cangku_panel3):
             pyautogui.leftClick()
-            time.sleep(0.2)
-            pyautogui.hotkey('ctrl', 'w')
+            time.sleep(0.2)          
+            with ctr.pressed(pynput.keyboard.Key.ctrl,'w'):
+                time.sleep(0.3)
+                pass                             
+            time.sleep(0.5)
             return False
     except TextNotFoundException:
         # 如果没有找到，说明没有错误弹窗，货物正常
@@ -125,6 +151,7 @@ def check_goods(cangku_panel3):
         
 
 def main():
+    
     """加载模型和标准化器"""
     #代理人列表窗口
     clf_agent1, scaler_agent1 = models['agent1']
@@ -149,8 +176,8 @@ def main():
     clf_chakanrenwu1, scaler_chakanrenwu1 = models['chakanrenwu1']
     template_chakanrenwu1, w_chakanrenwu1, h_chakanrenwu1 = templates['chakanrenwu1']
 
-    
-
+    #加载键盘控制器
+    ctr = pynput.keyboard.Controller()
 
     #设置需要捕获的屏幕区域
     agent_panel1 = screen_regions['agent_panel1']
@@ -185,7 +212,11 @@ def main():
     # 0.3.2 通过OCR文字识别查找代理人
     print(f"0.3.2 通过OCR文字识别查找代理人")
     if find_txt_ocr(agent_name,1,agent_panel2):
-        pyautogui.hotkey('ctrl', 'w')
+        #pyautogui.hotkey('ctrl', 'w')
+        with ctr.pressed(pynput.keyboard.Key.ctrl,'w'):
+            time.sleep(0.3)
+            pass                             
+        time.sleep(0.5)        
         pyautogui.doubleClick()  # 双击打开代理人对话窗口
         time.sleep(0.5)
 
@@ -200,7 +231,9 @@ def main():
         if find_icon(template_agent3, w_agent3, h_agent3, clf_agent3, scaler_agent3,2,0,0,None):
             pyautogui.leftClick()
             print("0.5.1 低安已接受任务!")
-            pyautogui.hotkey('ctrl', 'w')
+            with ctr.pressed(pynput.keyboard.Key.ctrl,'w'):
+                time.sleep(0.3)
+                pass
             time.sleep(0.5)
     except GoodsNotFoundException as e:
         print(e)
@@ -225,7 +258,10 @@ def main():
             if find_icon(template_agent3, w_agent3, h_agent3, clf_agent3, scaler_agent3,2,0,0,None):
                 pyautogui.leftClick()
                 print("1.3 已接受任务!")
-                pyautogui.hotkey('ctrl', 'w')
+                #pyautogui.hotkey('ctrl', 'w')
+                with ctr.pressed(pynput.keyboard.Key.ctrl,'w'):
+                    time.sleep(0.3)
+                    pass
                 time.sleep(0.5)
 
     # 查看任务
@@ -245,17 +281,22 @@ def main():
             if find_icon(template_agent3, w_agent3, h_agent3, clf_agent3, scaler_agent3,1,0,0,None):
                 pyautogui.leftClick()
                 print("2.3 已接受任务!")
-                pyautogui.hotkey('ctrl', 'w')
+                #pyautogui.hotkey('ctrl', 'w')
+                with ctr.pressed(pynput.keyboard.Key.ctrl,'w'):
+                    time.sleep(0.3)
+                    pass              
                 time.sleep(0.5)
 
             # 没有[接受]任务按钮
             else:
                 print("2.4 之前接受过任务!")
-                pyautogui.hotkey('ctrl', 'w')
+                #pyautogui.hotkey('ctrl', 'w')
+                with ctr.pressed(pynput.keyboard.Key.ctrl,'w'):
+                    time.sleep(0.3)
+                    pass                             
                 time.sleep(0.5)
 
-    #pyautogui.hotkey('ctrl', 'w')
-    
+   
     #对OCR识别结果进行修正
     goods=correct_string(goods)
     print(f"任务目标:运送[{goods}]")  
@@ -264,9 +305,7 @@ def main():
     #subgood=goods[:-1] #截取货物名称前三位
     #move_goods(subgood)
     time.sleep(0.5)
-    print(f"准备搬运{goods}")
-    pyautogui.hotkey('alt', 'f')
-    print(f"准备搬运2222{goods}")
+    print(f"准备搬运:{goods}")
     time.sleep(5)
     move_goods(goods)
                                                                    

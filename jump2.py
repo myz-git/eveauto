@@ -2,6 +2,7 @@ import numpy as np
 import pyautogui
 import time
 from joblib import load
+import pynput
 
 # 内部程序调用
 from say import speak
@@ -24,6 +25,9 @@ def main():
     clf_jump3, scaler_jump3 = models['jump3']
     template_jump3, w_jump3, h_jump3 = templates['jump3']
 
+    clf_jump4, scaler_jump4 = models['jump4']
+    template_jump4, w_jump4, h_jump4 = templates['jump4']
+
     clf_out1, scaler_out1 = models['out1']
     template_out1, w_out1, h_out1 = templates['out1']
 
@@ -35,13 +39,17 @@ def main():
     region_upper_right = screen_regions['upper_right_panel']
     region_mid_left = screen_regions['mid_left_panel']
 
-
+    ctr = pynput.keyboard.Controller()
     """Start"""
     #time.sleep(0.5)  # 等待开始
     #close_icons_main()
-    pyautogui.hotkey('ctrl', 'w')
-    pyautogui.moveTo(450, 150)
-    pyautogui.scroll(200)
+    #pyautogui.hotkey('ctrl', 'w')
+    with ctr.pressed(pynput.keyboard.Key.ctrl,'w'):
+        time.sleep(0.3)
+        pass                             
+    time.sleep(0.5)    
+    #pyautogui.moveTo(450, 150)
+    #pyautogui.scroll(200)
 
 
     
@@ -56,14 +64,24 @@ def main():
     """
 
 
-    # 持续查找小黄门
-    print('查找[小黄门]...')
+    with ctr.pressed('v'):
+        time.sleep(0.3)  
+        pass
+
+    # 持续查找小黄门   
     while True : 
-        if find_icon(template_jump0, w_jump0, h_jump0, clf_jump0, scaler_jump0,5,0,0,region_full_right):
-            print('找到[小黄门]!')
-            pyautogui.leftClick()            
+        print('查找[空间站小黄门]...')
+        if find_icon(template_jump4, w_jump4, h_jump4, clf_jump4, scaler_jump4,5,0,0,region_full_right):
+            print('找到[空间站小黄门]!')
+            pyautogui.leftClick()
             break
-        # 尝试总览往下划动
+        
+        print('查找[星门小黄门]...')
+        if find_icon(template_jump0, w_jump0, h_jump0, clf_jump0, scaler_jump0,5,0,0,region_full_right):
+            print('找到[星门小黄门]!')
+            pyautogui.leftClick()                      
+            break
+         # 尝试总览往下划动
         pyautogui.moveTo(1600,400)
         pyautogui.scroll(-900)
         print('未找到[小黄门],再次查找...')
@@ -88,17 +106,23 @@ def main():
     while True:
         #关闭小窗口
         close_icons_main()
+        with ctr.pressed('v'):
+            time.sleep(0.3)  
+            pass
 
         # 持续检查是否可以停靠空间站
         if find_icon(template_jump3, w_jump3, h_jump3, clf_jump3, scaler_jump3,5,0,0,region_full_right):
             pyautogui.leftClick()            
             print('准备停靠空间站')
             # 只有停靠空间站才能退出循环
-            break
+            return True
         else:
             # 检查是否跳跃图标状态
             if find_icon(template_jump1, w_jump1, h_jump1, clf_jump1, scaler_jump1,1,0,0,region_full_right):
-                pyautogui.leftClick()  
+                pyautogui.leftClick() 
+                time.sleep(5) 
+                find_icon(template_jump2, w_jump2, h_jump2, clf_jump2, scaler_jump2,1,0,0,region_full_right)
+                pyautogui.leftClick()
                 print('跳跃至星门')
             else:
                 # 如果跳跃不可用,则检查跃迁
