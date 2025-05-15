@@ -3,7 +3,7 @@ import azure.cognitiveservices.speech as speechsdk
 
 def load_config():
     config = {}
-    with open('cfg.txt', 'r') as file:
+    with open('static/cfg.txt', 'r') as file:
         lines = file.readlines()
         for line in lines:
             key, value = line.strip().split('=')

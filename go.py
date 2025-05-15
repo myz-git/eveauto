@@ -1,94 +1,77 @@
-import sys
+import subprocess
 import time
 import logging
-import subprocess
-
-from pynput import keyboard
-
-# 全局变量，用于控制程序是否继续运行
-running = True
-# 记录 Ctrl 键是否被按下
-ctrl_pressed = False
-
-def on_press(key):
-    global running, ctrl_pressed
-    try:
-        if key == keyboard.Key.ctrl_l or key == keyboard.Key.ctrl_r:
-            ctrl_pressed = True
-        if key == keyboard.Key.f12 and ctrl_pressed:
-            running = False
-            print("Ctrl+F12 pressed, stopping the program.")
-            return False  # 停止监听
-    except AttributeError:
-        pass
-
-def on_release(key):
-    global ctrl_pressed
-    if key == keyboard.Key.ctrl_l or key == keyboard.Key.ctrl_r:
-        ctrl_pressed = False
+import sys
 
 # 配置日志
-logging.basicConfig(filename='task.log', level=logging.DEBUG,  # 更改日志级别为DEBUG以记录更多信息
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('task.log', mode='a'),
+        logging.StreamHandler()
+    ]
+)
 
 def run_script(script_name):
+    """运行指定脚本并捕获输出"""
+    logging.info(f"开始执行: {script_name}")
     try:
-        logging.info(f'开始执行: {script_name}')
-        result = subprocess.run(['python', script_name], capture_output=True, text=True)
-        if result.stdout:
-            logging.info(f'{script_name} 标准输出: {result.stdout}')
-        if result.stderr:
-            logging.error(f'{script_name} 错误输出: {result.stderr}')
-
+        cmd = ['python'] + script_name.split()
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
         if result.returncode != 0:
-            logging.error(f'{script_name} 执行失败，返回码: {result.returncode}')
+            logging.error(f"{script_name} 执行失败，返回码: {result.returncode}")
             return False
         return True
     except Exception as e:
-        logging.error(f'运行 {script_name} 时出错: {str(e)}')
+        logging.error(f"{script_name} 执行失败: {e}")
         return False
 
 def main():
-    global running
-
-    # 开始监听键盘事件
-    listener = keyboard.Listener(on_press=on_press, on_release=on_release)
-    listener.start()
-
+    # 定义完整脚本列表
     scripts = ['task.py', 'jump1.py', 'talk.py', 'navigate.py', 'jump1.py']
+    
+    # 获取用户指定的开始位置（1-based 索引，转换为 0-based）
+    if len(sys.argv) > 1:
+        try:
+            start_index = int(sys.argv[1]) - 1
+            if start_index < 0 or start_index >= len(scripts):
+                logging.error(f"开始位置 {sys.argv[1]} 超出范围（1-{len(scripts)}）")
+                sys.exit(1)
+        except ValueError:
+            logging.error(f"无效的开始位置: {sys.argv[1]}")
+            sys.exit(1)
+    else:
+        start_index = 0
 
-    while running:
-        time.sleep(2)
-        # 检查命令行参数是否指定了开始脚本
-        starting_script = 0
-        if len(sys.argv) > 1:
-            try:
-                starting_script = int(sys.argv[1]) - 1
-                if starting_script < 0 or starting_script >= len(scripts):
-                    logging.error(f"无效的脚本索引 {starting_script + 1}")
-                    sys.exit(f"请输入一个在1到{len(scripts)}之间的索引")
-            except ValueError:
-                logging.error("输入的索引非数字")
-                sys.exit("请输入一个数字索引")
+    cycle_count = 0
+    first_cycle = True  # 标记第一次循环
 
-        current_script = starting_script
-        while True:
-            if not run_script(scripts[current_script]):
-                logging.error(f'{scripts[current_script]} 执行失败，停止运行')
-                break
-            logging.info(f'已完成 {scripts[current_script]}')
-            
-            # Move to the next script, or wrap around to the first script
-            current_script += 1
-            if current_script >= len(scripts):
-                current_script = 0  # Reset to the first script if we reach the end of the list
+    while True:
+        cycle_count += 1
+        if first_cycle:
+            # 第一次循环从用户指定位置开始
+            current_scripts = scripts[start_index:]
+            logging.info(f"开始第 {cycle_count} 次循环，脚本列表: {current_scripts}")
+            first_cycle = False
+        else:
+            # 后续循环使用完整列表
+            current_scripts = scripts
+            logging.info(f"开始第 {cycle_count} 次循环，脚本列表: {current_scripts}")
 
-            # 如果回到了起始点，添加一个等待时间再开始新一轮
-            if current_script == 0:
-                logging.info('完成一个完整任务流程，准备重启')
-                time.sleep(5)  # 每次循环之间的等待时间
-    listener.join()
+        for script in current_scripts:
+            if not run_script(script):
+                logging.error(f"脚本 {script} 失败，终止当前循环")
+                return
+            time.sleep(1)
 
+        logging.info(f"第 {cycle_count} 次循环完成，所有脚本执行成功")
+        logging.info("等待 1 秒后开始下一轮循环")
+        time.sleep(10)
 
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        logging.info("程序被用户中断")
+        sys.exit(0)

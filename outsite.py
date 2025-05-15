@@ -1,33 +1,35 @@
 # outsite.py
-import numpy as np
 import pyautogui
 import time
-from joblib import load
-from model_config import models, templates
-from utils import capture_screen_area,find_icon
-
+from utils import safe_find_icon, screen_regions,find_txt_ocr
 
 def outsite_icons_main():
-    # Load models and scalers   
-    clf_out1, scaler_out1 = models['out1']
-    template_out1, w_out1, h_out1 = templates['out1']
-    if find_icon(template_out1, w_out1, h_out1, clf_out1, scaler_out1,5):
+    # 使用全屏区域或指定区域
+    region = screen_regions['full_right_panel']
+    agent_panel3 = screen_regions['agent_panel3']
+        
+    # 关闭导航窗口
+    if find_txt_ocr("关闭",max_attempts=1,region=agent_panel3):
+        time.sleep(0.2) 
         pyautogui.leftClick()
-        time.sleep(1)
+
+    # 查找并点击 out1 图标
+    if safe_find_icon("out1", region, max_attempts=3,cnn_threshold=0.8):
+        time.sleep(3)
         outsite_check()
 
 def outsite_check():
-    clf_zonglan1, scaler_zonglan1 = models['zonglan1']
-    template_zonglan1, w_zonglan1, h_zonglan1 = templates['zonglan1']
-    # 判断是否出站了
+    # 使用全屏区域或指定区域
+    region = screen_regions['full_right_panel']
+
+    # 判断是否出站
     attempts = 0
     while attempts < 20:
-        if find_icon(template_zonglan1, w_zonglan1, h_zonglan1, clf_zonglan1, scaler_zonglan1,1,0,-100) :   
+        if safe_find_icon("zonglan1", region, max_attempts=10, offset_x=0, offset_y=-100,cnn_threshold=0.8):
             print("已出站,程序退出")
             break 
         time.sleep(0.5)
-        attempts += 1        
-        
+        attempts += 1
 
 if __name__ == "__main__":
     outsite_icons_main()

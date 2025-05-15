@@ -1,0 +1,200 @@
+import os
+import glob
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import Dataset, DataLoader
+from PIL import Image
+import torchvision.transforms as transforms
+import numpy as np
+import sys
+import logging
+
+# 日志配置
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('task.log', mode='a'),
+        logging.StreamHandler()
+    ],
+    force=True
+)
+
+class IconDataset(Dataset):
+    def __init__(self, positive_paths, negative_paths, transform=None):
+        self.image_paths = positive_paths + negative_paths
+        self.labels = [1] * len(positive_paths) + [0] * len(negative_paths)
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.image_paths)
+
+    def __getitem__(self, idx):
+        image = Image.open(self.image_paths[idx]).convert('RGB')
+        label = self.labels[idx]
+        if self.transform:
+            image = self.transform(image)
+        return image, label
+
+class IconCNN(nn.Module):
+    def __init__(self, icon_height=64, icon_width=64):
+        super(IconCNN, self).__init__()
+        self.conv1 = nn.Conv2d(3, 32, 3, padding=1)
+        self.conv2 = nn.Conv2d(32, 64, 3, padding=1)
+        self.conv3 = nn.Conv2d(64, 128, 3, padding=1)
+        self.pool = nn.MaxPool2d(2, 2)
+        pooled_height = icon_height // 8
+        pooled_width = icon_width // 8
+        self.fc1 = nn.Linear(128 * pooled_height * pooled_width, 256)
+        self.fc2 = nn.Linear(256, 2)
+        self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(0.6)
+        self.bn1 = nn.BatchNorm2d(32)
+        self.bn2 = nn.BatchNorm2d(64)
+        self.bn3 = nn.BatchNorm2d(128)
+
+    def forward(self, x):
+        x = self.pool(self.relu(self.bn1(self.conv1(x))))
+        x = self.pool(self.relu(self.bn2(self.conv2(x))))
+        x = self.pool(self.relu(self.bn3(self.conv3(x))))
+        x = x.view(x.size(0), -1)
+        x = self.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = self.fc2(x)
+        return x
+
+class EarlyStopping:
+    def __init__(self, patience=20, verbose=True):
+        self.patience = patience
+        self.verbose = verbose
+        self.best_acc = 0
+        self.counter = 0
+        self.early_stop = False
+
+    def __call__(self, val_acc, epoch):
+        if val_acc > self.best_acc:
+            self.best_acc = val_acc
+            self.counter = 0
+        else:
+            self.counter += 1
+            if self.counter >= self.patience and epoch >= 10:
+                self.early_stop = True
+                if self.verbose:
+                    logging.info(f"Early stopping at epoch {epoch+1}: Validation Accuracy has not improved for {self.patience} epochs.")
+
+def train_model(model, train_loader, val_loader, num_epochs=50, device='cuda'):
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.0005, weight_decay=0.02)
+    early_stopping = EarlyStopping(patience=20, verbose=True)
+    
+    for epoch in range(num_epochs):
+        model.train()
+        running_loss = 0.0
+        for inputs, labels in train_loader:
+            inputs, labels = inputs.to(device), labels.to(device)
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+            running_loss += loss.item() * inputs.size(0)
+        
+        epoch_loss = running_loss / len(train_loader.dataset)
+        
+        model.eval()
+        correct = 0
+        total = 0
+        with torch.no_grad():
+            for inputs, labels in val_loader:
+                inputs, labels = inputs.to(device), labels.to(device)
+                outputs = model(inputs)
+                _, predicted = torch.max(outputs.data, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+        
+        val_acc = 100 * correct / total
+        logging.info(f"Epoch {epoch+1}, Loss: {epoch_loss}, Validation Accuracy: {val_acc}%")
+        
+        early_stopping(val_acc, epoch)
+        if early_stopping.early_stop:
+            break
+    
+    return model
+
+def main():
+    if len(sys.argv) < 2:
+        print("Usage: python train.py jump0")
+        sys.exit(1)
+
+    icon_name = sys.argv[1]
+    icon_height, icon_width = 64, 64  # 固定尺寸
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    logging.info(f"Training with icon_height={icon_height}, icon_width={icon_width}")
+
+    # 加载所有类别
+    traindata_dir = 'traindata'
+    all_classes = [os.path.basename(d) for d in glob.glob(os.path.join(traindata_dir, '*')) if os.path.isdir(d)]
+    logging.info(f"所有类别: {all_classes}")
+
+    # 加载正样本
+    positive_dir = os.path.join(traindata_dir, f'{icon_name}-1')
+    positive_paths = glob.glob(os.path.join(positive_dir, '*.png'))
+    
+    # 加载负样本
+    negative_dir = os.path.join(traindata_dir, f'{icon_name}-0')
+    negative_paths = glob.glob(os.path.join(negative_dir, '*.png'))
+    
+    # 检查负样本数量
+    if not negative_paths:
+        logging.warning(f"No {icon_name}-0 samples found, training may be unbalanced")
+    if len(negative_paths) < len(positive_paths):
+        logging.warning(f"Negative samples ({len(negative_paths)}) fewer than positive samples ({len(positive_paths)}), consider collecting more {icon_name}-0 images")
+    
+    logging.info(f"Loaded {len(positive_paths)} positive samples from {positive_dir}, First 5: {positive_paths[:5]}")
+    logging.info(f"Loaded {len(negative_paths)} negative samples from {negative_dir}, First 5: {negative_paths[:5]}")
+    logging.info(f"Positive/Negative ratio: {len(positive_paths)}/{len(negative_paths)}")
+    logging.info(f"Negative samples sources: {set(os.path.basename(os.path.dirname(p)) for p in negative_paths)}")
+
+    # 数据增强
+    transform = transforms.Compose([
+        transforms.RandomAffine(degrees=40, translate=(0.5, 0.5), scale=(0.6, 1.4)),
+        transforms.ColorJitter(brightness=0.6, contrast=0.6, saturation=0.4),
+        transforms.RandomHorizontalFlip(),
+        transforms.Resize((icon_height, icon_width)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+    ])
+
+    # 数据集划分（70%训练，30%验证）
+    dataset = IconDataset(positive_paths, negative_paths, transform=transform)
+    train_size = int(0.7 * len(dataset))
+    val_size = len(dataset) - train_size
+    train_dataset, val_dataset = torch.utils.data.random_split(dataset, [train_size, val_size])
+    
+    train_positive = sum(1 for i in train_dataset.indices if dataset.labels[i] == 1)
+    train_negative = len(train_dataset) - train_positive
+    val_positive = sum(1 for i in val_dataset.indices if dataset.labels[i] == 1)
+    val_negative = len(val_dataset) - val_positive
+    logging.info(f"Train: {train_positive} positive, {train_negative} negative; Validation: {val_positive} positive, {val_negative} negative")
+    logging.info(f"Validation samples: {val_dataset.dataset.image_paths[:5]}")
+
+    # 数据加载器
+    train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=8, shuffle=False)
+
+    # 初始化模型
+    model = IconCNN(icon_height, icon_width).to(device)
+    logging.info(f"Epoch 1: Training on {train_size} samples, Batch size: 8")
+
+    # 训练模型
+    model = train_model(model, train_loader, val_loader, num_epochs=50, device=device)
+
+    # 保存模型
+    model_path = os.path.join('model_cnn', f"{icon_name}_classifier.pth")
+    torch.save(model.state_dict(), model_path)
+    logging.info(f"模型已保存到: {model_path}")
+
+if __name__ == "__main__":
+    main()

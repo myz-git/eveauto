@@ -1,146 +1,85 @@
 import numpy as np
 import pyautogui
 import time
-from joblib import load
 import pynput
-
-# 内部程序调用
+import sys
 from say import speak
-from close import close_icons_main
-from utils import scollscreen, capture_screen_area, predict_icon_status, load_model_and_scaler,find_icon
-from model_config import models, templates, screen_regions
-
+from utils import log_message, safe_find_icon, hscollscreen, rolljump, screen_regions,find_txt_ocr
 
 def main():
-    """加载模型和标准化器"""
-    clf_jump0, scaler_jump0 = models['jump0']
-    template_jump0, w_jump0, h_jump0 = templates['jump0']
-    
-    clf_jump1, scaler_jump1 = models['jump1']
-    template_jump1, w_jump1, h_jump1 = templates['jump1']
-
-    clf_jump2, scaler_jump2 = models['jump2']
-    template_jump2, w_jump2, h_jump2 = templates['jump2']
-
-    clf_jump3, scaler_jump3 = models['jump3']
-    template_jump3, w_jump3, h_jump3 = templates['jump3']
-
-    clf_jump4, scaler_jump4 = models['jump4']
-    template_jump4, w_jump4, h_jump4 = templates['jump4']
-
-    clf_out1, scaler_out1 = models['out1']
-    template_out1, w_out1, h_out1 = templates['out1']
-
-    clf_zhongdian2, scaler_zhongdian2 = models['zhongdian2']
-    template_zhongdian2, w_zhongdian2, h_zhongdian2 = templates['zhongdian2']
+    """主函数，整合导航和自动驾驶"""
+    log_message("INFO", "jump2.py 运行开始", screenshot=False)
 
     # 屏幕区域配置
     region_full_right = screen_regions['full_right_panel']
-    region_upper_right = screen_regions['upper_right_panel']
-    region_mid_left = screen_regions['mid_left_panel']
+    mid_left_panel = screen_regions['mid_left_panel']
 
     ctr = pynput.keyboard.Controller()
-    """Start"""
-    #time.sleep(0.5)  # 等待开始
-    #close_icons_main()
-    #pyautogui.hotkey('ctrl', 'w')
-    with ctr.pressed(pynput.keyboard.Key.ctrl,'w'):
-        time.sleep(0.3)
-        pass                             
-    time.sleep(0.5)    
-    #pyautogui.moveTo(450, 150)
-    #pyautogui.scroll(200)
+    state = "set_destination"
+    find_gate_attempts = 0
+    max_find_gate_attempts = 30
 
-
-    
-    # 查找是否有[设置为终点]
-    """ 返程不需设置终点, 可注销这部分
-    print('查找[设置终点]...')
-    if find_icon(template_zhongdian2, w_zhongdian2, h_zhongdian2, clf_zhongdian2, scaler_zhongdian2, 3, 0, 0, region_mid_left):
-        pyautogui.leftClick()
-        print('已设置终点!')
-    else:
-        print('未找到[设置终点]!')
-    """
-
-
-    with ctr.pressed('v'):
-        time.sleep(0.3)  
-        pass
-
-    # 持续查找小黄门   
-    while True : 
-        print('查找[空间站小黄门]...')
-        if find_icon(template_jump4, w_jump4, h_jump4, clf_jump4, scaler_jump4,5,0,0,region_full_right):
-            print('找到[空间站小黄门]!')
-            pyautogui.leftClick()
-            break
-        
-        print('查找[星门小黄门]...')
-        if find_icon(template_jump0, w_jump0, h_jump0, clf_jump0, scaler_jump0,5,0,0,region_full_right):
-            print('找到[星门小黄门]!')
-            pyautogui.leftClick()                      
-            break
-         # 尝试总览往下划动
-        pyautogui.moveTo(1600,400)
-        pyautogui.scroll(-900)
-        print('未找到[小黄门],再次查找...')
-    
-    # 第一次跳跃
-    print('第一次跳跃...')
-    if find_icon(template_jump1, w_jump1, h_jump1, clf_jump1, scaler_jump1,3,0,0,region_full_right):
-        pyautogui.leftClick()
-        print('开始第一次跳跃...')
-
-    time.sleep(0.5)
-
-    print('第一次跃迁...')
-    if find_icon(template_jump2, w_jump2, h_jump2, clf_jump2, scaler_jump2,3,0,0,region_full_right):
-        pyautogui.leftClick()
-        print('开始第一次跃迁...')
-    
-    #speak("欢迎登机, 您所乘坐的航班即将起飞,请收起小桌板,调整座椅靠背,手机设置飞行模式",185)
-    time.sleep(3)
-
-    """持续航行中"""
     while True:
-        #关闭小窗口
-        close_icons_main()
-        with ctr.pressed('v'):
-            time.sleep(0.3)  
-            pass
-
-        # 持续检查是否可以停靠空间站
-        if find_icon(template_jump3, w_jump3, h_jump3, clf_jump3, scaler_jump3,5,0,0,region_full_right):
-            pyautogui.leftClick()            
-            print('准备停靠空间站')
-            # 只有停靠空间站才能退出循环
-            return True
-        else:
-            # 检查是否跳跃图标状态
-            if find_icon(template_jump1, w_jump1, h_jump1, clf_jump1, scaler_jump1,1,0,0,region_full_right):
-                pyautogui.leftClick() 
-                time.sleep(5) 
-                find_icon(template_jump2, w_jump2, h_jump2, clf_jump2, scaler_jump2,1,0,0,region_full_right)
-                pyautogui.leftClick()
-                print('跳跃至星门')
+        if state == "set_destination":
+            if safe_find_icon("zhongdian2", mid_left_panel, max_attempts=2):
+                log_message("INFO", "终点设置成功，切换到check_local状态", screenshot=False)
+                state = "check_local"
             else:
-                # 如果跳跃不可用,则检查跃迁
-                if find_icon(template_jump2, w_jump2, h_jump2, clf_jump2, scaler_jump2,1,0,0,region_full_right):
-                    pyautogui.leftClick()
-                    print('开始跃迁')
-        
-        # 重复检查
-        time.sleep(2)
+                log_message("ERROR", "未找到终点", screenshot=False)
+                state = "find_gate"
+                # return 1
 
-    # 停靠空间站
-    while True:
-        if find_icon(template_out1, w_out1, h_out1, clf_out1, scaler_out1,1,0,0,region_full_right):
-            #speak('您的旅程已结束,感谢乘坐天合联盟东方航空,祝您旅途愉快',185)
-            break
+        elif state == "check_local":
+            if safe_find_icon("tingkao1", mid_left_panel, max_attempts=2):
+                log_message("INFO", "找到tingkao1，切换到check_dock状态", screenshot=False)
+                state = "check_dock"
+            else:
+                log_message("INFO", "未找到tingkao1，切换到find_gate状态", screenshot=True)
+                state = "find_gate"
+
+        elif state == "find_gate":
+            if safe_find_icon("jump0", region_full_right, max_attempts=2) or safe_find_icon("jump4", region_full_right, max_attempts=2):
+                log_message("INFO", "找到跳跃门，切换到warp状态", screenshot=False)
+                state = "warp"
+                find_gate_attempts = 0
+            else:
+                hscollscreen()
+                find_gate_attempts += 1
+                if find_gate_attempts >= max_find_gate_attempts:
+                    log_message("ERROR", f"find_gate尝试{max_find_gate_attempts}次失败", screenshot=True)
+                    return 1
+                log_message("INFO", f"find_gate尝试第{find_gate_attempts}次", screenshot=False)
+
+        elif state == "warp":
+            if safe_find_icon("jump3", region_full_right, max_attempts=1):
+                log_message("INFO", "找到jump3，切换到check_dock状态", screenshot=False)
+                state = "check_dock"
+            else:
+                if rolljump():
+                    log_message("INFO", "rolljump成功，切换到check_dock状态", screenshot=False)
+                    # pyautogui.click()
+                    # speak("rolljump成功，准备切换到check_dock状态,等待30秒")
+                    time.sleep(20)
+                    state = "check_dock"
+                else:
+                    log_message("INFO", "rolljump继续尝试", screenshot=False)
+
+        elif state == "check_dock":
+            # if safe_find_icon("out1", region_full_right, max_attempts=30,threshold=0.7, cnn_threshold=0.60, action=None):
+            while True:
+                safe_find_icon("jump3", region_full_right, max_attempts=1)
+                # speak("已切换到check_dock状态,等待完成停靠")
+                if find_txt_ocr("离站",max_attempts=1,region=region_full_right):
+                    log_message("INFO", "空间站已停靠，jump2.py运行结束", screenshot=False)
+                    time.sleep(2)
+                    return 0               
+
         time.sleep(1)
 
 if __name__ == "__main__":
-    main()
-
-
+    try:
+        exit_code = main()
+        sys.exit(exit_code)
+    except Exception as e:
+        log_message("ERROR", f"全局异常: {e}", screenshot=True)
+        sys.exit(1)

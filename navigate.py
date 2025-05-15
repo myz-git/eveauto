@@ -1,103 +1,70 @@
-import cv2
-import numpy as np
+# navigate.py
 import pyautogui
-import pytesseract
 import pyperclip  # 导入 pyperclip
 import time
-from joblib import load
-import os
-import json
-from cnocr import CnOcr
-import re
 import pynput
 
 # 内部程序调用
 from say import speak
-from close import close_icons_main
 from outsite import outsite_icons_main
-from utils import scollscreen, capture_screen_area, predict_icon_status, load_model_and_scaler,find_icon,load_location_name,find_txt_ocr,find_txt_ocr2
-from model_config import models, templates, screen_regions
-
-
+from utils import safe_find_icon, load_location_name, find_txt_ocr, screen_regions,close_icons_main
 
 def navigate_main():
-    clf_kjz1, scaler_kjz1 = models['kjz1']
-    template_kjz1, w_kjz1, h_kjz1 = templates['kjz1']
-
-    clf_search1, scaler_search1 = models['search1']
-    template_search1, w_search1, h_search1 = templates['search1']
-
-    clf_zhongdian1, scaler_zhongdian1 = models['zhongdian1']
-    template_zhongdian1, w_zhongdian1, h_zhongdian1 = templates['zhongdian1']
-
-
-
     # 执行关闭窗口操作
     time.sleep(1)
-    #close_icons_main()
+    # 中间对话框
+    agent_panel3 = screen_regions['agent_panel3']
+    upper_left_panel = screen_regions['upper_left_panel']
 
     # 1. 按 'l' 键打开地点搜索窗口   
-    #pyautogui.press('l')
-    
     location_name = load_location_name('addr')
     ctr = pynput.keyboard.Controller()
-    '''
-    with ctr.pressed(
-            'l'):
-        time.sleep(1)  
-        pass
-    '''
     time.sleep(1)
     # 2. 检测并点击 "搜索"
-    #if find_icon(template_search1, w_search1, h_search1, clf_search1, scaler_search1,3,22,0):
-    if find_txt_ocr('搜索',3):
+    if find_txt_ocr('搜索任意内容', region=upper_left_panel):
         pyautogui.leftClick()
 
         # 3. 输入地点名称并回车
         pyperclip.copy(location_name)  # 复制地点名称到剪贴板
         pyautogui.leftClick() 
         time.sleep(1)
-        #pyautogui.hotkey('ctrl', 'v')  # 粘贴地点名称
-        #pyautogui.press('enter')
-        with ctr.pressed(
-                pynput.keyboard.Key.ctrl,
-                'v'):
+        with ctr.pressed(pynput.keyboard.Key.ctrl, 'v'):
             time.sleep(0.8)
             pass 
 
         time.sleep(1)
-        with ctr.pressed(
-                pynput.keyboard.Key.enter
-                ):
+        with ctr.pressed(pynput.keyboard.Key.enter):
             time.sleep(0.8)
             pass             
-        
 
         time.sleep(1)  # 等待搜索结果
     
-        # 4. 检测并点击空间站图标
-        if find_icon(template_kjz1, w_kjz1, h_kjz1, clf_kjz1, scaler_kjz1,2,0,22) :
+        # 4. 检测并点击空间站图标（全屏区域）
+        fx, fy = pyautogui.size()
+        region = (0, 0, fx, fy)
+        if safe_find_icon("kjz1", region, max_attempts=2, offset_x=0, offset_y=22):
             pyautogui.rightClick()
             time.sleep(0.5) 
             # 5. 检测并点击 "设定为终点"
-            if find_icon(template_zhongdian1, w_zhongdian1, h_zhongdian1, clf_zhongdian1, scaler_zhongdian1,2):
+            if safe_find_icon("zhongdian1", region, max_attempts=2):
                 time.sleep(0.8) 
                 pyautogui.leftClick()
                 time.sleep(0.8) 
                 print("导航已设定!")
 
     close_icons_main()
-    #关闭窗口(ctrl+w)
-    with ctr.pressed(
-            pynput.keyboard.Key.ctrl,
-            'w'):
+    # 关闭窗口(ctrl+w)
+    with ctr.pressed(pynput.keyboard.Key.ctrl, 'w'):
         time.sleep(0.3)
-        pass    
-    #出站
+        pass
+
+    # 关闭导航窗口
+    if find_txt_ocr("关闭",max_attempts=1,region=agent_panel3):
+        time.sleep(0.2) 
+        pyautogui.leftClick()
+    # 出站
     time.sleep(2) 
     outsite_icons_main()
-   
-
 
 if __name__ == "__main__":
     navigate_main()

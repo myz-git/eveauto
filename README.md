@@ -1,6 +1,11 @@
 ## 项目描述
 
-实现持续自动执行物流任务;
+实现游戏中自动执行物流任务,分为如下步骤:
+a. 接任务: 在空间站与代理人谈话接任务,然后将任务物品从仓库挪到飞船仓中(task.py );
+b. 送货: 自动驾驶到目的地空间站(jump1.py);
+c. 交任务:  代理人谈话提交任务,然后设定返程导航(talk.py,navigate.py);
+d. 返程: 自动驾驶返回原来空间站(jump1.py);
+如上步骤自动循环执行;
 
 
 
@@ -9,74 +14,67 @@
 |------eveauto------
 |-go.py 
 | 功能:启动及调度程序
-| 说明:实现按顺序循环执行"接任务,送货,交任务,回程导航,返回"五个步骤,对应调用'task.py', 'jump1.py', 'talk.py', 'navigate.py', 'jump2.py';
+| 说明:实现按顺序循环执行"接任务,送货,交任务(设定返程导航),返回"四个步骤
 |-
 |-task.py
 | 功能:接任务程序;
-| 说明:实现在空间站自动找代理人谈话并接受任务,获得货物;
+| 说明:在空间站与代理人谈话接任务,然后将任务物品从仓库挪到飞船仓中,离开空间站;
 |
 |-jump1.py
 | 功能:送货;
-| 说明:设定送货任务目的地,并前往目的地空间站;
+| 说明: 设定送货任务目的地,自动驾驶到目的地空间站;
 |
 |-talk.py
 | 功能:交任务;
-| 说明:在目的地空间站和代理人谈话交任务;
+| 说明:在目的地空间站和代理人谈话提交任务;
 |
 |-navigate.py
 | 功能:回程导航
-|说明:设定返回目的地的导航,并出站;
-|
-|-jump2.py
-| 功能:返回
-| 说明:返回接任务的空间站;
+|说明:设定返回目的地的导航,离开空间站;
 |
 |-outsite.py
-| 功能:出站
-| 说明:离开当前空间站;
+| 功能:离开空间站
+| 说明: 让飞船离开当前空间站;
 |
 |-say.py
-| 功能:播报
+| 功能: 语音播报
 | 说明:语音播报;
 |
 |-utils.py
 | 功能:通用功能函数
-| 说明:包括图像识别,文字识别,图标状态识别等通用函数
+| 说明:包括图像识别,文字识别等通用函数
 |
-|-model_config.py
-| 功能:加载模型函数
-| 说明:定义图标模板和模型路径,以及图像识别区域配置
+|-jump2.py
+| 功能: 自动驾驶程序
+| 说明: 其他场景中的自动驾驶程序
+|
 |-----------------------
 
 |----模型训练相关-------
 |-snap.py
 |-功能:自动抓取图标
-|-说明:根据给定的样例图标,程序运行时自动抓取不同背景下的图标并保存在训练文件中;
+|-说明:根据给定的icon/xxx.png样例图标,自动抓取不同光线背景下的图标并保存在训练文件夹(traindata);
 |-
-|-train1stat.py
-|-功能:训练模型函数(单状态)
-|-说明:使用机器学习判断图标状态生成训练模型
+|-train.py
+|-功能: CNN训练模型
+|-说明:使用traindata素材生成CNN模型(在model_cnn下),能够识别不同背景变化（如黑色、灰白色、灰色背景）
 |-
-|-train2stat.py
-|-功能:训练模型函数(双状态)
-|-说明:使用机器学习判断图标状态生成训练模型
-|-
-|-testtrain.py
+|-verify.py
 |-功能:模型验证 
-|-说明:对训练模型进行反向验证 ,查看验证反馈
+|-说明: 对训练的模型进行反向验证 ,查看验证反馈(含外形匹配验证及CNN识别验证)
 |-
-|-icon  需要识别的图标样例
-|-traindata 用来训练的图标
-|-model 训练后的图标模型
+|-icon  需要识别的图标模板
+|-traindata 用来训练的图标素材
+|-model_cnn训练后的图标模型
 |-----------------------
-
-
 
 
 
 
 
 ## 环境准备
+
+ **环境**：使用 Python 3.10.6，PyTorch 2.3.1，OpenCV 4.9.0.80，PyAutoGUI 0.9.54，屏幕分辨率为 1920x1080
 
 ```
 cd D:\Workspace\git\eveauto
@@ -106,10 +104,9 @@ pip install tensorflow
 pip install keyboard
 pip install pynput
 
-
 ```
 
-## 实现技术
+## 关键技术
 
 1. **图像捕获与处理**：
    
@@ -117,213 +114,184 @@ pip install pynput
    - 处理图像以便后续的模板匹配和状态识别。
    
 2. **模板匹配**：
+   
    - 利用 `OpenCV` 的模板匹配功能来定位屏幕上的图标。使用了图标的灰度模板与屏幕截图的灰度版本进行匹配。
    
    - 计算图标的精确位置，包括左上角和中心点坐标。
    
-3. **状态识别**：
+3. **图像识别**：
    
-   - 通过机器学习模型（使用随机森林分类器），根据图像的彩色直方图特征来预测图标的状态（可用或不可用）。
-   - 使用 `StandardScaler` 进行特征的标准化处理，确保预测时的数据处理与训练模型时相同。
+   - 通过模板匹配外形(icon/*.png)第一步筛选;
+   - 使用训练好的cnn模型来对图像在不同光线背景下的识别;
    
 4. **文字识别**：
    
    使用CNOCR
    
 4. **自动操作执行**：
-   - 根据图标的状态，如果图标可用，则自动移动鼠标到图标的中心坐标并执行点击操作。
+   - 使用pynput.keyboard及pyautogui 控制键鼠
    
-5. **调试与优化**：
-   - 逐步调试程序，确保图标可以准确地被定位和识别。
-   - 解决了图像捕获、模板匹配精度、状态预测准确性以及坐标转换等方面的问题。
-
-### 遇到的问题与解决方案：
-
-- **图标位置识别不准确**：通过调整模板匹配的参数和确保坐标系统一致性（将相对坐标转换为绝对屏幕坐标）解决了问题。
-- **状态识别总是显示为可用**：确保预测使用的图像预处理与训练时一致，增加了状态预测的调试输出来帮助诊断问题。
-- **鼠标操作不准确**：修改了坐标计算方法，确保鼠标准确地移动到图标的中心并进行点击。
-
-
-
-## 实现步骤
-
-### 模型准备
-
-1. #### 截取识别图标 
-
-   截取游戏界面清晰背景的可用状态下的图标,保存在icon下, 如  icon/jump3-1.png;
-
-   截取游戏界面清晰背景的不可用状态下的图标,保存在icon下, 如  icon/jump3-0.png;  (如果图标就一种状态,该步骤省略)
-
-    注:  图标保存为33*33大小png格式,背景要清晰纯色 ,能够突显图标;
-
-    如 ,  icon/jump3-1.png(可用状态) , icon/jump3-0.png(不可用状态)  ;
-
    
 
-2. #### 准备训练图片
+## 遇到的问题与解决方案：
 
-   2.1 游戏中在显示jump3-1.png图标时, 执行 python snap.py jump3-1.png  , 然后缓慢移动游戏界面,表现出图标不同的背景的展现;,  此时snap.py会对该图标进行持续人截图并保存到studydata下(默认每秒截取1次,持续100次)  自动保存在studydata/jump3-1下作为训练素
+- **图标位置识别不准确**：
+  通过调整模板匹配的参数和确保坐标系统一致性（将相对坐标转换为绝对屏幕坐标）解决了问题。
+- 
 
-    2.2 重复步骤2.1  在游戏显示不可用状态的图标时,进行截取 python snap.py jump3-0.png   , 自动保存在studydata/jump3-0下;
 
-   
 
-3. #### 使用机器学习判断图标状态生成训练模型
+## 图像识别步骤
 
-   3.1 执行python  study2sta.py  jump3 对具有两种状态的图标(如jump3-1.png, jump3-0.png)  进行机器学习训练识别能力,获得trained_model_jump3.joblib, scaler_jump3.joblib训练模型;
+### 制作图标模板
 
-   3.2  执行python  study1sta.py  jump2对只有一种状态的图标(如jump2-1.png)进行机器学习训练识别能力,获得python  study2sta.py  jump3训练模型
+截取游戏界面清晰背景的下标准图标作为模板,保存在icon下, 如  icon/jump1-1.png;
 
-   观察训练结果, 比如:  测试集上的准确率: 0.9696969696969697 
+ 注:  图标背景要清晰纯色 ,能够清晰表现图标外形
 
-   
 
-4. #### 模型验证 
 
-   对训练模型进行反向验证 ,查看验证反馈, 
+### 采集图标素材
 
-   注:teststudy.py可以自动识别一种状态还是两种状态 
+执行 python snap.py jump1-1.png  , 然后缓慢移动游戏界面,表现出图标不同的光线背景的展现;  此时snap.py会对该图标进行持续截图并保存在traindata/jump1-1/下作为训练素材
 
-   python teststudy.py jump3    
+可重复多次该步骤,尽量覆盖各种光线背景
 
-   ...
-   Image: studydata/jump3-0\jump3-0-42.png - Expected: 0, Predicted: 0
-   Image: studydata/jump3-0\jump3-0-43.png - Expected: 0, Predicted: 1
-   Image: studydata/jump3-0\jump3-0-44.png - Expected: 0, Predicted: 0
-   ...
-   Accuracy in studydata/jump3-0: 98.39%
 
-   表示jump3-0-43.png这个图像不能被正确识别;
 
-   #### 5. 加载和使用模型
+### 使用图标素材训练模型
 
-   执行最终的识别程序jump.py,调用模型进行识别,并触发相应动作;
+执行python  train.py  jump1-1 对图标(如jump1-1.png, jump3-0.png)  进行学习训练得到模型model_cnn/jump1-1_classifier.pth
 
-   左上角坐标：(1380, 50)
-   x1, y1, width1, height1 = 1380, 50, 320, 650 # 设置为需要捕获的屏幕区域
 
-   注意:  确保jump.py与study.py中的特征提取`calculate_histogram` 函数一致 ,如:
 
-   ```
-   def calculate_histogram(image):
-       """计算图像的归一化彩色直方图作为特征向量"""
-       hist = cv2.calcHist([image], [0, 1, 2], None, [8, 8, 8], [0, 256, 0, 256, 0, 256])
-       cv2.normalize(hist, hist)
-       return hist.flatten()
-   ```
+### 模型验证 
 
-   以及处理图标的方式:
+对训练模型进行反向验证 ,查看验证反馈, 
 
-   ```
-       # 处理图标1
-       res_jump1 = cv2.matchTemplate(panel_gray, template_gray_jump1, cv2.TM_CCOEFF_NORMED)
-   ```
+执行python verify.py  jump1-1  验证游戏界面中是否可以正确识别到图标, 没有漏检和误检, 可能需要调整外形匹配阈值及CNN识别阈值;
 
-   
+### 加载和使用模型
 
-### 示例: 交任务
-
-#### 1. 准备识别图标 
-
-截图icon/tingkao-1.png, 该图标就一种状态;
-
-注:  背景要清晰纯色 ,能够突显图标;
-
-#### 2.准备训练图片
+utils.py 中 find_icon_cnn函数
 
 ```
-python snap.py tingkao-1.png,
+
+def find_icon_cnn(icon, region, max_attempts=3, offset_x=0, offset_y=0, threshold=0.86):
+    if region is None:
+      fx, fy = pyautogui.size()
+      region = (0, 0, fx, fy)    
+    
+    """使用模板匹配和CNN模型在屏幕特定区域查找图标，并将鼠标移动到图标中心"""
+    # 加载模板图标
+    template_path = os.path.join('icon', f"{icon}.png")
+    template = cv2.imread(template_path, cv2.IMREAD_COLOR)
+    if template is None:
+        raise FileNotFoundError(f"模板图像 '{template_path}' 无法加载")
+    template_gray = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
+    icon_height, icon_width = template.shape[:2]
+    w, h = template_gray.shape[::-1]
+
+    # 定义 CNN 模型
+    class IconCNN(nn.Module):
+        def __init__(self):
+            super(IconCNN, self).__init__()
+            self.conv1 = nn.Conv2d(3, 32, 3, padding=1)
+            self.conv2 = nn.Conv2d(32, 64, 3, padding=1)
+            self.conv3 = nn.Conv2d(64, 128, 3, padding=1)
+            self.pool = nn.MaxPool2d(2, 2)
+            pooled_height = icon_height // 8
+            pooled_width = icon_width // 8
+            self.fc1 = nn.Linear(128 * pooled_height * pooled_width, 256)
+            self.fc2 = nn.Linear(256, 2)
+            self.relu = nn.ReLU()
+            self.dropout = nn.Dropout(0.5)
+            self.bn1 = nn.BatchNorm2d(32)
+            self.bn2 = nn.BatchNorm2d(64)
+            self.bn3 = nn.BatchNorm2d(128)
+
+        def forward(self, x):
+            x = self.pool(self.relu(self.bn1(self.conv1(x))))
+            x = self.pool(self.relu(self.bn2(self.conv2(x))))
+            x = self.pool(self.relu(self.bn3(self.conv3(x))))
+            x = x.view(x.size(0), -1)
+            x = self.relu(self.fc1(x))
+            x = self.dropout(x)
+            x = self.fc2(x)
+            return x
+
+    # 加载训练好的模型
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = IconCNN().to(device)
+    model_path = os.path.join('model_cnn', f"{icon}_classifier.pth")
+    try:
+        model.load_state_dict(torch.load(model_path))
+    except FileNotFoundError:
+        print(f"Error: {model_path} not found. Please ensure the model file exists.")
+        sys.exit(1)
+    except RuntimeError as e:
+        print(f"Error loading model: {e}")
+        print("The model may have a different structure. Please retrain using 'train.py'.")
+        sys.exit(1)
+    model.eval()
+
+    # 数据预处理（CNN 输入）
+    transform = transforms.Compose([
+        transforms.Resize((icon_height, icon_width)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+    ])
+
+    # 动态确定类别
+    opposite_icon = f"{icon.split('-')[0]}-0"
+    if os.path.exists(os.path.join('traindata', opposite_icon)):
+        class_names = [icon, opposite_icon]
+    else:
+        class_names = [icon, 'other']
+
+    attempts = 0
+    while attempts < max_attempts:
+        screen_image = capture_screen_area(region)
+        screen_gray = cv2.cvtColor(screen_image, cv2.COLOR_BGR2GRAY)
+
+        # 模板匹配
+        res = cv2.matchTemplate(screen_gray, template_gray, cv2.TM_CCOEFF_NORMED)
+        loc = np.where(res >= threshold)
+        matches = list(zip(*loc[::-1]))
+
+        if matches:
+            for pt in matches:
+                top_left = pt
+                bottom_right = (top_left[0] + w, top_left[1] + h)
+                icon_image = screen_image[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]]
+                icon_rgb = cv2.cvtColor(icon_image, cv2.COLOR_BGR2RGB)
+                pil_image = Image.fromarray(icon_rgb)
+                tensor = transform(pil_image).unsqueeze(0).to(device)
+
+                # 使用 CNN 模型推理
+                with torch.no_grad():
+                    output = model(tensor)
+                    probabilities = torch.softmax(output, dim=1)
+                    confidence, predicted = torch.max(probabilities, 1)
+                    predicted_class = class_names[predicted.item()]
+                    print(f"坐标 ({top_left[0] + region[0]}, {top_left[1] + region[1]}) 模板匹配度: {res[top_left[1], top_left[0]]:.4f}, 预测类别: {predicted_class}, 置信度: {confidence.item():.4f}")
+
+                    if predicted.item() == 0 and confidence.item() > 0.85:
+                        x = top_left[0] + region[0] + w // 2 + offset_x
+                        y = top_left[1] + region[1] + h // 2 + offset_y
+                        pyautogui.moveTo(x, y)
+                        return True
+
+            print(f"找到 {len(matches)} 个匹配区域，但都不是 {icon}（可能是 {class_names[1]}）")
+        else:
+            print(f"未找到图标，最高匹配度: {np.max(res):.4f}")
+
+        attempts += 1
+        time.sleep(0.5)
+        scollscreen()
+
+    return False
 ```
-
-多生成几次, 图片保存在studydata\tingkao-1下
-
-#### 3. 训练模型
-
-因为只有一种状态,因此使用 study1sta.py
-
-```
-python study1sta.py tingkao
-```
-
-测试集上的准确率: 1.0
-Model and scaler saved: model/trained_model_tingkao.joblib, model/scaler_tingkao.joblib
-
-#### 4. 模型验证
-
-```
-python teststudy.py tingkao
-```
-
-...
-
-### 主程序使用模型
-
-#### 修改model_config.py
-
-##### 确定捕捉区域
-
-截个游戏界面全图,使用图像软件如GIMP, 确定捕捉区域坐标;
-
-新增model_config.py中的screen_regions范围,这里使用mid_left_panel
-
-说明:x1, y1, width1, height1 = 0, 0, 400, 500 # 设置为需要捕获的屏幕区域
-
-##### 加载模型
-
-```
-model_names = ['jump0', 'jump1', 'jump2', 'jump3', 'zhongdian2', 'out1','close1','agent1','agent2','agent3','yunshumubiao1','search2','jiku1','jiku2','chakanrenwu1','talk1','talk2','kjz1','search1','zhongdian1','zonglan1','tingkao']
-```
-
-### 主程序中使用模型
-
-加载模型
-
-```
-clf_tingkao, scaler_tingkao = models['tingkao']
-    template_tingkao, w_tingkao, h_tingkao = templates['tingkao']
-```
-
-设定检查区域:
-
-```
-mid_left_panel = screen_regions['mid_left_panel']
-```
-
-
-
-### 示例: 接任务
-
-#### 训练游戏中代理人图标识别模型
-
-**a.识别图标agent1** 
-
-​	截图icon/agent1-0.png  ,icon/agent1-1.png  代表两种状态,
-
-​	注:  背景要清晰纯色 ,能够突显图标, 两个截图大小要一样;
-
-**b. 准备0状态(agent1-0)训练图片**
-
-```
-python snap.py agent1-0.png
-```
-
-​	在游戏中展现agent1-0的界面, 缓慢移动背景,展现不同背景下agent1-0,一两分钟后,停止snap.py, 检查traindata/agent1-0/下抓取的图片是否有不符合的; 
-
-**c. 准备1状态(agent1-1)训练图片**
-
-​	同上;
-
-**d.训练agent1**
-
-```
-python train2stat.py agent1
---如果是1个状态用train1stat.py程序 ,是2个状态用train2stat.py 
-```
-
-得到模型: **trained_model_agent1.joblib, scaler_agent1.joblib**
-
-##### 2). 主程序
 
 
 
