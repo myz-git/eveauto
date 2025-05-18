@@ -14,7 +14,10 @@ def outsite_icons_main():
         pyautogui.leftClick()
 
     # 查找并点击 out1 图标
-    if safe_find_icon("out1", region, max_attempts=3,cnn_threshold=0.8):
+    # if safe_find_icon("out1", region, max_attempts=5,cnn_threshold=0.7):
+    if find_txt_ocr("离站",max_attempts=5,region=region):
+        time.sleep(0.2) 
+        pyautogui.leftClick()
         time.sleep(3)
         outsite_check()
 

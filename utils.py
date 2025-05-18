@@ -4,14 +4,13 @@ import numpy as np
 from joblib import load
 from cnocr import CnOcr
 import time
-import json
-import re
 import torch
 import torch.nn as nn
 import torchvision.transforms as transforms
 from PIL import Image
 import os
 import sys
+import re
 import logging
 from say import speak
 
@@ -59,10 +58,6 @@ def log_message(level, message, screenshot=False, region=None):
             logging.error(message)
         elif level == "WARNING":
             logging.warning(message)
-        
-        # 临时关闭保存截图功能
-        # if screenshot:
-        #     screenshot_path = save_screenshot("utils", f"_{level.lower()}_{int(time.time())}")
         
         for handler in logging.getLogger().handlers:
             if isinstance(handler, logging.FileHandler):
@@ -122,7 +117,6 @@ def preprocess_image(image):
     _, thresh = cv2.threshold(sharpened, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     return thresh
 
-
 def check_errors():
     """检查错误提示窗口"""
     if find_txt_ocr("错误", max_attempts=1, region=None) or find_txt_ocr("警告", max_attempts=1, region=None):
@@ -140,21 +134,9 @@ def run_with_timeout(timeout, action, log_prefix):
     log_message("ERROR", f"{log_prefix}超时", screenshot=True)
     return False
 
-
 def find_icon_cnn(icon, region, offset_x, offset_y, threshold, cnn_threshold):
     """
     使用训练好的CNN模型单次查找屏幕上的图标。
-
-    参数:
-        icon (str): 图标名称
-        region (tuple): 搜索区域 (x, y, width, height)，若为None则全屏搜索
-        offset_x (int): X轴偏移量
-        offset_y (int): Y轴偏移量
-        threshold (float): 模板匹配阈值
-        cnn_threshold (float): CNN置信度阈值
-
-    返回:
-        bool: 是否找到并移动鼠标到图标位置
     """
     if region is None:
         fx, fy = pyautogui.size()
@@ -162,7 +144,6 @@ def find_icon_cnn(icon, region, offset_x, offset_y, threshold, cnn_threshold):
     else:
         region = adjust_region(region)
 
-    # 加载模板图像
     template_path = os.path.join('icon', f"{icon}-1.png")
     template = cv2.imread(template_path, cv2.IMREAD_COLOR)
     if template is None:
@@ -172,7 +153,6 @@ def find_icon_cnn(icon, region, offset_x, offset_y, threshold, cnn_threshold):
     icon_height, icon_width = template.shape[:2]
     w, h = template_gray.shape[::-1]
 
-    # 定义CNN模型结构，与训练时一致
     class IconCNN(nn.Module):
         def __init__(self):
             super(IconCNN, self).__init__()
@@ -200,7 +180,6 @@ def find_icon_cnn(icon, region, offset_x, offset_y, threshold, cnn_threshold):
             x = self.fc2(x)
             return x
 
-    # 加载模型
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = IconCNN().to(device)
     model_path = os.path.join('model_cnn', f"{icon}_classifier.pth")
@@ -212,23 +191,20 @@ def find_icon_cnn(icon, region, offset_x, offset_y, threshold, cnn_threshold):
         raise FileNotFoundError(f"模型文件 '{model_path}' 未找到")
     except RuntimeError as e:
         log_message("ERROR", f"加载模型失败: {e}", screenshot=True)
-        raise RuntimeError(f"加载模型失败: {e}. 请确保模型结构与训练时一致")
+        raise RuntimeError(f"加载模型失败: {e}")
     model.eval()
 
-    # 定义图像预处理
     transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
     ])
 
-    # 设置分类类别
     opposite_icon = f"{icon.split('-')[0]}-0"
     if os.path.exists(os.path.join('traindata', opposite_icon)):
         class_names = [icon, opposite_icon]
     else:
         class_names = [icon, 'other']
 
-    # 单次模板匹配
     screen_image = capture_screen_area(region)
     screen_gray = cv2.cvtColor(screen_image, cv2.COLOR_BGR2GRAY)
     res = cv2.matchTemplate(screen_gray, template_gray, cv2.TM_CCOEFF_NORMED)
@@ -249,7 +225,6 @@ def find_icon_cnn(icon, region, offset_x, offset_y, threshold, cnn_threshold):
             pil_image = Image.fromarray(icon_rgb)
             tensor = transform(pil_image).unsqueeze(0).to(device)
 
-            # CNN 分类
             with torch.no_grad():
                 output = model(tensor)
                 probabilities = torch.softmax(output, dim=1)
@@ -294,23 +269,16 @@ def rolljump(max_attempts=0):
     attempts = 0
     while max_attempts == 0 or attempts < max_attempts:
         if safe_find_icon("jump3", region_full_right, max_attempts=1):
-            # time.sleep(0.2)
-            # pyautogui.click()
-            # time.sleep(10)
-            # pyautogui.click()
             log_message("INFO", "找到jump3，退出rolljump")
-            # speak("找到jump3，退出rolljump")
             return True
         else:
             safe_find_icon("jump1", region_full_right, max_attempts=1)
             safe_find_icon("jump2", region_full_right, max_attempts=1)          
-            log_message("INFO", "rolljump,循环跳跃星门:{attempts}")
-            # pyautogui.click()
+            log_message("INFO", f"rolljump,循环跳跃星门:{attempts}")
         time.sleep(2)
         attempts += 1
     log_message("ERROR", f"rolljump达到最大尝试次数: {max_attempts}", screenshot=True)
     return False
-
 
 def find_txt_ocr(txt, max_attempts=5, region=None):
     if region is None:
@@ -373,25 +341,6 @@ def find_txt_ocr2(txt, max_attempts=5, region=None):
     log_message("ERROR", f"文本: {txt} 查找失败，尝试次数: {max_attempts}", screenshot=True)
     return None
 
-def load_location_name(tag):
-    try:
-        with open('addr.txt', 'r', encoding='utf-8-sig') as file:
-            content = file.read()
-            data = json.loads(content)
-            result = data.get(tag)
-            log_message("INFO", f"加载位置名称: {tag} -> {result}")
-            return result
-    except FileNotFoundError:
-        log_message("ERROR", "addr.txt 文件未找到", screenshot=True)
-        print("文件未找到。")
-    except json.JSONDecodeError:
-        log_message("ERROR", "解析 addr.txt JSON 时出错", screenshot=True)
-        print("解析 JSON 时出错。")
-    except UnicodeDecodeError:
-        log_message("ERROR", "addr.txt 文件编码问题，无法读取", screenshot=True)
-        print("文件编码问题，无法读取。")
-    return None
-
 def correct_string(input_str):
     rules = [
         ('天', '大'),
@@ -405,16 +354,6 @@ def correct_string(input_str):
         input_str = re.sub(old, new, input_str)
     log_message("INFO", f"字符串校正: {input_str}")
     return input_str
-
-def load_config():
-    config = {}
-    with open('cfg.txt', 'r') as file:
-        lines = file.readlines()
-        for line in lines:
-            key, value = line.strip().split('=')
-            config[key.strip()] = value.strip()
-    log_message("INFO", f"加载配置: {config}")
-    return config
 
 def find_and_close_icons(icon, region):
     if safe_find_icon(icon, region, max_attempts=1, threshold=0.86):
