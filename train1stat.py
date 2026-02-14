@@ -30,14 +30,17 @@ def load_images_from_folder(folder):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python study1sta.py <icon_name>")
+        print("Usage: python train1stat.py <icon_name>")
         sys.exit(1)
 
     icon_name = sys.argv[1]  # 从命令行参数获取图标名称
     icon_folder = f'traindata/{icon_name}-1'  # 构建训练数据文件夹路径
 
     icon_paths = load_images_from_folder(icon_folder)
-    labels = [1] * len(icon_paths)  # 因为图标只有一个可用状态，将所有标签设置为1
+    if not icon_paths:
+        print(f"Error: no images in {icon_folder}")
+        sys.exit(1)
+    labels = [1] * len(icon_paths)  # 仅正样本，单类别（非二分类 jump5-1/0）
 
     features = []
     for path in icon_paths:

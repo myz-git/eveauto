@@ -1,6 +1,8 @@
 import os
 import sys
+import glob
 import logging
+import argparse
 import cv2
 import numpy as np
 import torch
@@ -21,7 +23,7 @@ class IconCNN(nn.Module):
         self.fc1 = nn.Linear(128 * 8 * 8, 256)
         self.fc2 = nn.Linear(256, 2)
         self.relu = nn.ReLU()
-        self.dropout = nn.Dropout(0.6)
+        self.dropout = nn.Dropout(0.5)
         self.bn1 = nn.BatchNorm2d(32)
         self.bn2 = nn.BatchNorm2d(64)
         self.bn3 = nn.BatchNorm2d(128)
@@ -52,7 +54,7 @@ def verify_icon(icon_name, max_attempts=3, template_threshold=0.80, model_thresh
     model_path = os.path.join('model_cnn', f"{icon_name}_classifier.pth")
     
     try:
-        model.load_state_dict(torch.load(model_path))
+        model.load_state_dict(torch.load(model_path, map_location=device))
     except FileNotFoundError:
         logging.error(f"Model file {model_path} not found.")
         sys.exit(1)
@@ -123,9 +125,88 @@ def verify_icon(icon_name, max_attempts=3, template_threshold=0.80, model_thresh
     
     return False
 
+
+def evaluate_accuracy(icon_name):
+    """
+    在 traindata/{icon}-1 与 traindata/{icon}-0 上评估模型准确率，
+    输出：准确率、精确率、召回率、F1、混淆矩阵。
+    """
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = IconCNN().to(device)
+    model_path = os.path.join('model_cnn', f"{icon_name}_classifier.pth")
+    try:
+        model.load_state_dict(torch.load(model_path, map_location=device))
+    except FileNotFoundError:
+        logging.error(f"Model file {model_path} not found. Train first: python train.py {icon_name}")
+        sys.exit(1)
+    model.eval()
+
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+    ])
+
+    pos_dir = os.path.join('traindata', f'{icon_name}-1')
+    neg_dir = os.path.join('traindata', f'{icon_name}-0')
+    pos_paths = sorted(glob.glob(os.path.join(pos_dir, '*.png')))
+    neg_paths = sorted(glob.glob(os.path.join(neg_dir, '*.png')))
+    if not pos_paths:
+        logging.error(f"No images in {pos_dir}")
+        sys.exit(1)
+    if not neg_paths:
+        logging.error(f"No images in {neg_dir}. Need both -1 and -0 for accuracy evaluation.")
+        sys.exit(1)
+
+    all_paths = pos_paths + neg_paths
+    true_labels = [1] * len(pos_paths) + [0] * len(neg_paths)
+
+    pred_labels = []
+    with torch.no_grad():
+        for path in all_paths:
+            img = Image.open(path).convert('RGB')
+            tensor = transform(img).unsqueeze(0).to(device)
+            out = model(tensor)
+            probs = torch.softmax(out, dim=1)
+            _, pred = torch.max(probs, 1)
+            pred_labels.append(pred.item())
+
+    tp = sum(1 for t, p in zip(true_labels, pred_labels) if t == 1 and p == 1)
+    tn = sum(1 for t, p in zip(true_labels, pred_labels) if t == 0 and p == 0)
+    fp = sum(1 for t, p in zip(true_labels, pred_labels) if t == 0 and p == 1)
+    fn = sum(1 for t, p in zip(true_labels, pred_labels) if t == 1 and p == 0)
+
+    n = len(true_labels)
+    accuracy = (tp + tn) / n
+    precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+    recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
+
+    print(f"\n===== 模型准确率验证 [{icon_name}] =====")
+    print(f"  样本: 正 {len(pos_paths)} / 负 {len(neg_paths)}")
+    print(f"  准确率 (Accuracy):  {accuracy:.2%}")
+    print(f"  精确率 (Precision): {precision:.2%}  (预测为正的里真正是正的比例)")
+    print(f"  召回率 (Recall):    {recall:.2%}  (真实正样本中被正确识别的比例)")
+    print(f"  F1:                 {f1:.2%}")
+    print(f"  混淆矩阵:  pred=0  pred=1")
+    print(f"    true=0     {tn:4d}    {fp:4d}")
+    print(f"    true=1     {fn:4d}    {tp:4d}")
+    print("========================================\n")
+    return accuracy
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    if len(sys.argv) < 2:
-        print("Usage: python verify.py jump0")
+    parser = argparse.ArgumentParser(description="验证图标 CNN 模型：实时找图 或 在 traindata 上算准确率")
+    parser.add_argument("icon_name", nargs="?", help="图标名，如 jump5")
+    parser.add_argument("--eval", action="store_true", help="在 traindata 上评估准确率（精确率/召回率/F1/混淆矩阵）")
+    parser.add_argument("--max-attempts", type=int, default=3, help="实时验证时的截屏尝试次数")
+    args = parser.parse_args()
+    if not args.icon_name:
+        parser.print_help()
+        print("\nExample:  python verify.py jump5 --eval   # 评估准确率")
+        print("          python verify.py jump5           # 实时屏幕找图验证")
         sys.exit(1)
-    verify_icon(sys.argv[1])
+    if args.eval:
+        evaluate_accuracy(args.icon_name)
+    else:
+        verify_icon(args.icon_name, max_attempts=args.max_attempts)

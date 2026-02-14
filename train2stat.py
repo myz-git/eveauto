@@ -10,15 +10,13 @@ import os
 import sys  # 导入sys模块，用于接收命令行参数
 
 def calculate_histogram(image_path):
-    """计算给定图像路径的彩色直方图并进行归一化处理，作为特征向量"""
+    """计算给定图像路径的HSV直方图并归一化，与 find.predict_icon_status 一致"""
     image = cv2.imread(image_path, cv2.IMREAD_COLOR)
     if image is None:
         print(f"Warning: Unable to load image {image_path}")
         raise ValueError(f"Unable to load image: {image_path}")
-    else:
-        print(f"Loaded image: {image_path}")
-    #hist = cv2.calcHist([image], [0, 1, 2], None, [8, 8, 8], [0, 256, 0, 256, 0, 256])
-    hist = cv2.calcHist([image], [0, 1, 2], None, [16, 16, 16], [0, 256, 0, 256, 0, 256])
+    image_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    hist = cv2.calcHist([image_hsv], [0, 1, 2], None, [16, 16, 16], [0, 180, 0, 256, 0, 256])
     cv2.normalize(hist, hist)
     return hist.flatten()
 
@@ -30,7 +28,7 @@ def load_images_from_folder(folder):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python study.py <icon_name>")
+        print("Usage: python train2stat.py <icon_name>")
         sys.exit(1)
 
     icon_name = sys.argv[1]  # 从命令行参数获取图标名称
@@ -41,6 +39,11 @@ if __name__ == "__main__":
 
     available_icon_paths = load_images_from_folder(available_icon_folder)
     unavailable_icon_paths = load_images_from_folder(unavailable_icon_folder)
+    if not available_icon_paths:
+        print(f"Error: no images in {available_icon_folder}")
+        sys.exit(1)
+    if not unavailable_icon_paths:
+        print(f"Warning: no images in {unavailable_icon_folder}; training will be unbalanced")
     icon_paths = available_icon_paths + unavailable_icon_paths
     labels = [1] * len(available_icon_paths) + [0] * len(unavailable_icon_paths)
 

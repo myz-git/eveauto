@@ -37,6 +37,14 @@ def extract_goods_name(text):
     return None
 
 def get_goods(icon, max_attempts=3, offset_x=0, offset_y=0, region=None):
+    """检查目的地是否经过低安"""
+
+    if find_txt_ocr("低安全", 1, region):
+        log_message("INFO", "目的地经过低安存在风险,程序退出", screenshot=False)
+        logging.info("目的地经过低安存在风险,程序退出")
+        return 0
+    
+    
     """定位运输目标"""
     if safe_find_icon(icon, region, max_attempts=max_attempts, offset_x=offset_x, offset_y=offset_y,threshold=0.5,cnn_threshold=0.7):
         print("--查找运输目标")
@@ -65,7 +73,7 @@ def move_goods(goods):
     cangku_panel3 = screen_regions['cangku_panel3']
 
     print("3.2 找机库坐标")
-    if safe_find_icon("jiku1", cangku_panel3, max_attempts=3, offset_x=20, offset_y=0):
+    if safe_find_icon("jiku1", cangku_panel3, max_attempts=3, offset_x=20, offset_y=0,threshold=0.7, cnn_threshold=0.7):
         print("3.2.1 找机库坐标")
         jiku_x, jiku_y = pyautogui.position()
         log_message("INFO", f"找到机库图标[jiku1]，坐标: ({jiku_x}, {jiku_y})", screenshot=False)

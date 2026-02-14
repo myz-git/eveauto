@@ -88,7 +88,8 @@ screen_regions = {
     'agent_panel2': (1500, 400, 400, 500),
     'agent_panel3': (200, 100, 1400, 900),
     'cangku_panel3': (0, 0, 1700, 850),
-    'need_goods_panel': (50, 50, 400, 500)
+    'need_goods_panel': (50, 50, 400, 500),
+    'control_panel': (500, 800, 850,230)
 }
 
 def scollscreen():
@@ -263,14 +264,37 @@ def hscollscreen():
     pyautogui.scroll(-2000)
     time.sleep(0.2)
 
+# def rolljump(max_attempts=0):
+#     """循环跳跃星门"""
+#     region_full_right = screen_regions['full_right_panel']
+#     attempts = 0
+#     while max_attempts == 0 or attempts < max_attempts:
+#         if safe_find_icon("jump3", region_full_right, max_attempts=1):
+#             log_message("INFO", "找到jump3，退出rolljump")
+#             return True
+#         else:
+#             safe_find_icon("jump1", region_full_right, max_attempts=1)
+#             safe_find_icon("jump2", region_full_right, max_attempts=1)          
+#             log_message("INFO", f"rolljump,循环跳跃星门:{attempts}")
+#         time.sleep(2)
+#         attempts += 1
+#     log_message("ERROR", f"rolljump达到最大尝试次数: {max_attempts}", screenshot=True)
+#     return False
+
 def rolljump(max_attempts=0):
     """循环跳跃星门"""
     region_full_right = screen_regions['full_right_panel']
+    mid_left_panel = screen_regions['mid_left_panel']
     attempts = 0
     while max_attempts == 0 or attempts < max_attempts:
+        # 首先检查是否到达目的地
+        if find_txt_ocr("跃迁至该处", max_attempts=1, region=mid_left_panel):
+            log_message("INFO", "已到达目的地")
+            return 0  # 程序停止
+        
         if safe_find_icon("jump3", region_full_right, max_attempts=1):
             log_message("INFO", "找到jump3，退出rolljump")
-            return True
+            return True 
         else:
             safe_find_icon("jump1", region_full_right, max_attempts=1)
             safe_find_icon("jump2", region_full_right, max_attempts=1)          
@@ -278,6 +302,50 @@ def rolljump(max_attempts=0):
         time.sleep(2)
         attempts += 1
     log_message("ERROR", f"rolljump达到最大尝试次数: {max_attempts}", screenshot=True)
+    return False  # 返回特殊状态
+
+def rolljump2(max_attempts=0):
+    """新的循环跳跃星门方式"""
+    region_full_right = screen_regions['full_right_panel']
+    mid_left_panel = screen_regions['mid_left_panel']
+    control_panel = screen_regions['control_panel']
+    attempts = 0
+    
+    while max_attempts == 0 or attempts < max_attempts:
+
+        # 先找jump3
+        if safe_find_icon("jump3", region_full_right, max_attempts=1,offset_x=0,offset_y=0):
+            log_message("INFO", "找到jump3，退出rolljump2")
+            return True
+        
+        # 找不到jump3，则找jump1
+        log_message("INFO", "未找到jump3，尝试查找jump1")
+        if safe_find_icon("jump1", region_full_right, max_attempts=1):
+            log_message("INFO", "找到jump1")
+            time.sleep(1)
+            # 找warp1
+            log_message("INFO", "查找warp1")
+            if safe_find_icon("warp1", control_panel, max_attempts=3,threshold=0.9,cnn_threshold=0.65):
+                log_message("INFO", "找到warp1，等待3秒后再次点击")
+                pyautogui.doubleClick
+                time.sleep(4)
+                pyautogui.doubleClick()  # 再次点击warp1
+                time.sleep(1)
+                # 再点击jump2
+                log_message("INFO", "查找并点击jump2")
+                if safe_find_icon("jump2", region_full_right, max_attempts=3,threshold=0.9,cnn_threshold=0.7):
+                    log_message("INFO", "找到并点击jump2，等待60秒")
+                    time.sleep(10)
+            else:
+                log_message("WARNING", "未找到warp1")
+        else:
+            log_message("WARNING", "未找到jump1")
+        
+        attempts += 1
+        log_message("INFO", f"rolljump2循环次数: {attempts}")
+        time.sleep(2)
+    
+    log_message("ERROR", f"rolljump2达到最大尝试次数: {max_attempts}", screenshot=True)
     return False
 
 def find_txt_ocr(txt, max_attempts=5, region=None):

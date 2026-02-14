@@ -41,13 +41,13 @@ def find_and_save_icon(template_filename, save_folder, capture_interval=0.5, num
 
     for i in range(num_captures):
         # 周期性重置视角（每50次循环拖动反方向）
-        if i % 50 == 0:
-            pyautogui.moveTo(250, 700)
-            pyautogui.dragRel(30, 0, 0.5, pyautogui.easeOutQuad)
-            time.sleep(1.5)
+        # if i % 50 == 0:
+        #     pyautogui.moveTo(250, 700)
+        #     pyautogui.dragRel(30, 0, 0.5, pyautogui.easeOutQuad)
+        #     time.sleep(1.5)
         
-        # 水平旋转屏幕
-        scollscreen()
+        # # 水平旋转屏幕
+        # scollscreen()
         time.sleep(0.5)
         
         screen_image = capture_screen()

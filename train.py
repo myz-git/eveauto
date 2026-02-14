@@ -39,7 +39,7 @@ class IconCNN(nn.Module):
         self.fc1 = nn.Linear(128 * 8 * 8, 256)
         self.fc2 = nn.Linear(256, 2)
         self.relu = nn.ReLU()
-        self.dropout = nn.Dropout(0.6)
+        self.dropout = nn.Dropout(0.5)
         self.bn1 = nn.BatchNorm2d(32)
         self.bn2 = nn.BatchNorm2d(64)
         self.bn3 = nn.BatchNorm2d(128)
@@ -87,7 +87,10 @@ def train_model(model, train_loader, val_loader, num_epochs, device):
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python train.py jump0")
+        print("Usage: python train.py <icon_name>   e.g. python train.py jump5")
+        print("  Expects: traindata/<icon_name>-1/*.png (positive), traindata/<icon_name>-0/*.png (negative)")
+        print("  Saves:   model_cnn/<icon_name>_classifier.pth  (used by utils.find_icon_cnn)")
+        print("  Also need: icon/<icon_name>-1.png as template for matchTemplate in utils.")
         sys.exit(1)
 
     icon_name = sys.argv[1]
@@ -104,14 +107,17 @@ def main():
     # Load positive and negative samples
     positive_dir = os.path.join(traindata_dir, f'{icon_name}-1')
     negative_dir = os.path.join(traindata_dir, f'{icon_name}-0')
-    positive_paths = glob.glob(os.path.join(positive_dir, '*.png'))
-    negative_paths = glob.glob(os.path.join(negative_dir, '*.png'))
+    positive_paths = sorted(glob.glob(os.path.join(positive_dir, '*.png')))
+    negative_paths = sorted(glob.glob(os.path.join(negative_dir, '*.png')))
 
+    if not positive_paths:
+        logging.error(f"No positive samples in {positive_dir}. Need e.g. traindata/{icon_name}-1/*.png")
+        sys.exit(1)
     if not negative_paths:
-        logging.warning(f"No {icon_name}-0 samples found, training may be unbalanced")
+        logging.warning(f"No {icon_name}-0 samples in {negative_dir}; training may be unbalanced")
     if len(negative_paths) < len(positive_paths):
-        logging.warning(f"Negative samples ({len(negative_paths)}) fewer than positive samples ({len(positive_paths)})")
-    
+        logging.warning(f"Negative samples ({len(negative_paths)}) fewer than positive ({len(positive_paths)})")
+
     logging.info(f"Loaded {len(positive_paths)} positive samples from {positive_dir}")
     logging.info(f"Loaded {len(negative_paths)} negative samples from {negative_dir}")
 
@@ -140,7 +146,9 @@ def main():
     model = train_model(model, train_loader, val_loader, num_epochs=50, device=device)
 
     # Save model
-    model_path = os.path.join('model_cnn', f"{icon_name}_classifier.pth")
+    model_dir = 'model_cnn'
+    os.makedirs(model_dir, exist_ok=True)
+    model_path = os.path.join(model_dir, f"{icon_name}_classifier.pth")
     torch.save(model.state_dict(), model_path)
     logging.info(f"模型已保存到: {model_path}")
 

@@ -145,31 +145,90 @@ pip install pynput
 
 ### 制作图标模板
 
-截取游戏界面清晰背景的下标准图标作为模板,保存在icon下, 如  icon/jump1-1.png;
+游戏界面清晰背景的下截取3张相同大小(如18*18)图标作为标准模板,保存在icon下, 如  jump5.png ,jump5-1.png,jump5-0.png
 
- 注:  图标背景要清晰纯色 ,能够清晰表现图标外形
+ 注:  图标背景要清晰纯色(面板禁用浅色) ,能够清晰表现图标外形
 
 
 
 ### 采集图标素材
 
-执行 python snap.py jump1-1.png  , 然后缓慢移动游戏界面,表现出图标不同的光线背景的展现;  此时snap.py会对该图标进行持续截图并保存在traindata/jump1-1/下作为训练素材
+运行游戏,并展现有截取标准图标的界面, 分别执行采集正向(jump5-1),负向(jump5-0)素材
 
-可重复多次该步骤,尽量覆盖各种光线背景
+```
+python snap.py jump5-1.png
+python snap.py jump5-0.png
+```
+
+然后缓慢移动游戏界面,表现出图标不同的光线背景的展现;  此时snap.py会对该图标进行持续截图并保存在traindata/jump5-*/下作为训练素材
+
+可重复多次该步骤,尽量覆盖各种光线背景, 建议>100张, 正向,负向数量保持一致;
 
 
 
 ### 使用图标素材训练模型
 
-执行python  train.py  jump1-1 对图标(如jump1-1.png, jump3-0.png)  进行学习训练得到模型model_cnn/jump1-1_classifier.pth
+执行python  train.py  jump5 对图标(如jump5-0.png, jump5-1.png)  进行学习训练得到模型model_cnn\jump5_classifier.pth
+
+```
+python  train.py  jump5
+```
 
 
 
 ### 模型验证 
 
-对训练模型进行反向验证 ,查看验证反馈, 
+- **评估模型准确率**
+
+  读取 traindata/jump5-1/ 和 traindata/jump5-0/ 里所有 .png，用当前 model_cnn/jump5_classifier.pth 预测，并输出上述指标
 
 执行python verify.py  jump1-1  验证游戏界面中是否可以正确识别到图标, 没有漏检和误检, 可能需要调整外形匹配阈值及CNN识别阈值;
+
+```
+python verify.py jump5 --eval
+```
+
+```
+===== 模型准确率验证 [jump5] =====
+  样本: 正 100 / 负 100
+  准确率 (Accuracy):  100.00%
+  精确率 (Precision): 100.00%  (预测为正的里真正是正的比例)
+  召回率 (Recall):    100.00%  (真实正样本中被正确识别的比例)
+  F1:                 100.00%
+  混淆矩阵:  pred=0  pred=1
+    true=0      100       0
+    true=1        0     100
+========================================
+```
+
+- **根据模型实时屏幕找图**
+
+```
+python verify.py jump5
+
+#可选：--max-attempts 10
+python verify.py jump5 --max-attempts 10
+
+#界面没有正确图标(只有负样本图标)
+(evejump) D:\Workspace\git\eveauto>python verify.py jump5
+INFO:root:Attempt 1: Template matching max_val = 0.9447799324989319
+INFO:root:候选区域 (1505, 292): 置信度 0.9979, 预测类别 0
+INFO:root:Attempt 1: Icon jump5 not detected in matched regions
+INFO:root:Attempt 2: Template matching max_val = 0.946071445941925
+INFO:root:候选区域 (1505, 292): 置信度 0.9978, 预测类别 0
+INFO:root:Attempt 2: Icon jump5 not detected in matched regions
+INFO:root:Attempt 3: Template matching max_val = 0.9450511932373047
+INFO:root:候选区域 (1505, 292): 置信度 0.9978, 预测类别 0
+INFO:root:Attempt 3: Icon jump5 not detected in matched regions
+
+#界面有正确图标:
+(evejump) D:\Workspace\git\eveauto>python verify.py jump5
+INFO:root:Attempt 1: Template matching max_val = 0.9805551767349243
+INFO:root:候选区域 (1505, 292): 置信度 1.0000, 预测类别 1
+INFO:root:找到 jump5 坐标: (1514, 301)
+```
+
+
 
 ### 加载和使用模型
 
