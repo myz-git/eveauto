@@ -90,7 +90,7 @@ conda activate evejump
 pip install pillow pyautogui 
 pip install opencv-python numpy
 pip install scikit-learn scikit-image
-pip install 
+pip install torch
 
 pip install cnocr
 pip install onnxruntime

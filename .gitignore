@@ -1,9 +1,14 @@
-local/
 *.log
+local/
 pic/
 traindata/
 machine/
 model/
+build/
+dist/
+static/
 __pycache__/
-debug_screenshots/
+licensing/
+keys/
+debug*/
 ~
