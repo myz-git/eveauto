@@ -9,7 +9,7 @@ from close import close_icons_main
 from cnocr import CnOcr
 
 import os
-def scollscreen(max_attempts=10):
+def scrollscreen(max_attempts=10):
     """转动屏幕"""
     fx,fy=pyautogui.size()
     pyautogui.moveTo(fx/2,fy/2+270,0.2)
@@ -46,7 +46,7 @@ def find_and_click_icon(template, width, height, clf, scaler, max_attempts=10,of
 
     attempts = 0
     while attempts < max_attempts:
-        scollscreen()  
+        scrollscreen()  
         screen = capture_screen_area(region)
 
         gray_screen = cv2.cvtColor(screen, cv2.COLOR_BGR2GRAY)
@@ -118,7 +118,7 @@ def find_txt_ocr(txt,  max_attempts=10, region=None):
                 return True
         #print(data)  # 打印所有识别到的文本，看是否包括目标文本
         time.sleep(1)
-        scollscreen() 
+        scrollscreen() 
         attempts += 1
         print(f"Attempt {attempts}/{max_attempts}: {txt} not found, Retrying...")
         
@@ -163,7 +163,7 @@ def lock_and_fight(txt,  max_attempts=10, region=None):
                 return True
         #print(data)  # 打印所有识别到的文本，看是否包括目标文本
         time.sleep(1)
-        scollscreen() 
+        scrollscreen() 
         attempts += 1
         print(f"Attempt {attempts}/{max_attempts}: {txt} not found, Retrying...")
         
@@ -212,7 +212,7 @@ def main():
     
     # 1. 准备开始
     time.sleep(2)
-    scollscreen()
+    scrollscreen()
 
     # 查找[SHUIPS]
     if find_txt_ocr("SHUIPS",5,region1):

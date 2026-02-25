@@ -5,7 +5,7 @@ import time
 import os
 from joblib import load
 
-def scollscreen():
+def scrollscreen():
     """水平转动屏幕"""
     fx, fy = pyautogui.size()
     pyautogui.moveTo(400, 50)
@@ -62,7 +62,7 @@ def find_icon(template, width, height, clf, scaler, max_attempts=10, offset_x=0,
                 pyautogui.click()
                 return True
         attempts += 1
-        #scollscreen()
+        #scrollscreen()
         time.sleep(0.5)
 
     if exflg:

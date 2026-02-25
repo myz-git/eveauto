@@ -5,7 +5,7 @@ import pynput
 import sys
 import logging
 from say import speak
-from utils import log_message, safe_find_icon, hscollscreen, rolljump, screen_regions,find_txt_ocr
+from utils import log_message, safe_find_icon, hscrollscreen, rolljump, screen_regions,find_txt_ocr
 
 def main():
     """主函数，整合导航和自动驾驶"""
@@ -60,7 +60,7 @@ def main():
                 state = "warp"
                 find_gate_attempts = 0
             else:
-                hscollscreen()
+                hscrollscreen()
                 find_gate_attempts += 1
                 if find_gate_attempts >= max_find_gate_attempts:
                     log_message("ERROR", f"find_gate尝试{max_find_gate_attempts}次失败", screenshot=True)

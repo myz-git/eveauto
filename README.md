@@ -347,7 +347,7 @@ def find_icon_cnn(icon, region, max_attempts=3, offset_x=0, offset_y=0, threshol
 
         attempts += 1
         time.sleep(0.5)
-        scollscreen()
+        scrollscreen()
 
     return False
 ```

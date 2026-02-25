@@ -6,7 +6,7 @@ import sys
 
 # 内部程序调用
 from say import speak
-from utils import scollscreen, capture_screen_area, safe_find_icon, find_txt_ocr, find_txt_ocr2, screen_regions, close_icons_main, log_message
+from utils import scrollscreen, capture_screen_area, safe_find_icon, find_txt_ocr, find_txt_ocr2, screen_regions, close_icons_main, log_message
 from dbcfg import get_location_name  # 修改：导入 get_location_name
 from navigate import navigate_main
 
